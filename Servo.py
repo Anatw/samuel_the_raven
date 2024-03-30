@@ -17,29 +17,31 @@ class Servo:
 		self.pin_number = pin_number
 		self.mid_value = int((min_value + max_value) / 2)
 	
-	def move(self, target_value):
+	def get_position(self):
+		return maestro_controller.getPosition(self.pin_number)
+		
+	def set_position(self, target_value):
 		maestro_controller.setTarget(self.pin_number,target_value)
 		return
 	
 	def generate_random_value(self, destiny):
-		current_position = maestro_controller.getPosition(self.pin_number)
+		current_position = self.get_position()
 		if current_position == destiny:
 			return current_position
 		# Make sure that the higer number is the current_position
 		if current_position < destiny:
 			return random.randint(current_position, destiny)
 		return random.randint(destiny, current_position)
-
 	
 	def move_max(self, target_value=None):
 		if not target_value:
 			target_value = self.generate_random_value(destiny=self.max_value)
-		self.move(target_value=target_value)
+		self.set_position(target_value=target_value)
 	
 	def move_min(self, target_value=None):
 		if not target_value:
 			target_value = self.generate_random_value(destiny=self.min_value)
-		self.move(target_value=target_value)
+		self.set_position(target_value=target_value)
 
 
 class Mouth(Servo):
