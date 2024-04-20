@@ -23,7 +23,6 @@ audio_folder_path = "/home/anatw/samuel/raven sounds"
 FAST_BLINK=4 # 6.7
 SLOW_BLINK=33 # 33.3
 # variables to save the current blink values when changing blinking rate is requested:
-<<<<<<< HEAD
 SAVED_FAST_BLINK = FAST_BLINK
 SAVED_SLOW_BLINK = SLOW_BLINK
 HEAD_GOT_PATTED = time.time()
@@ -31,12 +30,6 @@ SPEAKING = False
 LOOK_AT_ME = False
 HEAD_PAT = False
 TIME_TO_LOOK_AT_ME = 3
-=======
-SAVED_FAST_BLINK = None
-SAVED_SLOW_BLINK = None
-HEAD_GOT_PATTED = time.time()
-TALKING = False
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
 
 
 # setup:
@@ -73,7 +66,6 @@ class Movement():
 def signal_handler(signal, frame):
     # This function is meant to handle exit by the user (cntl+x).
     GPIO.cleanup()
-<<<<<<< HEAD
     exit(0)
 
 
@@ -98,9 +90,7 @@ def head_pat():
 
     maestro_controller.close()
     GPIO.cleanup()
-=======
     exit(0)  
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
 
 
 class Samuel:
@@ -159,22 +149,14 @@ class Samuel:
         class SoundCategories:
             class HeadPat:
                 name = "head_pat"
-<<<<<<< HEAD
                 time_to_sleep = 1
-=======
-                time_to_sleep = 550
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
             
             class Kraa:
                 name = "kraa"
             
             class LookAtMe:
                 name = "look_at_me"
-<<<<<<< HEAD
                 time_to_sleep = 0.1
-=======
-                time_to_sleep = 10
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
             
             class Talking:
                 name = "talking"
@@ -191,22 +173,13 @@ class Samuel:
             Args:
                 audio_track_to_play (str): The name of the music track to be play.
             """
-<<<<<<< HEAD
             global SPEAKING
             # TODO: cancel the next if and add channels, had pat is more importand than look at me - behave accordingly.
             if SPEAKING: # Check if audio sound is already being played:
                 print("I'm bussy...\n\n")
                 return
             SPEAKING = True         
-=======
             global TALKING
-            # TODo: cancel the next if and add channels, had pat is more importand than look at me - behave accordingly.
-            if TALKING: # Check if audio sound is already being played:
-                print("I'm bussy...\n\n")
-                return
-            TALKING = True
-            maestro_controller.setAccel(0,50)
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
             # ~ Samuel.Blink.change_blinking_time(fast_blink=1, slow_blink=3) # blink faster
             # Lower body and raise head:
             with open(os.path.join(audio_folder_path, "servo_ready_sound_rms_dict.json")) as servo_ready_rms_dict_json:
@@ -248,11 +221,6 @@ class Samuel:
                 # ~ if time_passed < audio_file_duration:
                     # ~ raise
                 pygame.quit()
-                TALKING = False
-                # ~ Samuel.Blink.restore_blinking_time()
-            return
-
-<<<<<<< HEAD
                 SPEAKING = False
                 # ~ Samuel.Blink.restore_blinking_time()
             return
@@ -273,53 +241,21 @@ class Samuel:
                 Samuel.Blink.restore_blinking_time()
                 HEAD_GOT_PATTED = time.time()
                 print(f"\nin head_pat, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
-=======
-    def head_pat():
-        global HEAD_GOT_PATTED
-        global TALKING
-        while True:
-            if GPIO.input(TOUCH1_PIN):
-                # ~ TALKING = True
-                audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=Samuel.Speak.SoundCategories.HeadPat.name)
-                Samuel.Blink.change_blinking_time(fast_blink=0, slow_blink=2) # blink faster
-                # ~ maestro_controller.setAccel(1,4)
-                # ~ Movement.wings.move_down()
-                # ~ time.sleep(random.uniform(0,0.8))
-                Movement.body.move_down()
-                Movement.head_ud.move_up()
-                # ~ maestro_controller.setTarget(1,5700)
-                print("Mmmmmm this feels nice!")
-                Samuel.Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=Samuel.Speak.SoundCategories.HeadPat.time_to_sleep)
-                time.sleep(random.uniform(0.5,1.2))
-                # ~ maestro_controller.setTarget(1,4000)
-                Movement.body.move_up(Movement.body.mid_value)
-                Movement.head_ud.move_down()
-                HEAD_GOT_PATTED = time.time()
-                print(f"\nin head_pat, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
-                Samuel.Blink.restore_blinking_time()
 
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
         maestro_controller.close()
         GPIO.cleanup()
     
     def look_at_me():
         global HEAD_GOT_PATTED
-<<<<<<< HEAD
         global LOOK_AT_ME
         while True:
             current_time = time.time()
             if (current_time - HEAD_GOT_PATTED) > TIME_TO_LOOK_AT_ME and not SPEAKING:
                 LOOK_AT_ME = True
-=======
-        while True:
-            current_time = time.time()
-            if (current_time - HEAD_GOT_PATTED) > 3 and not TALKING:
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
                 audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=Samuel.Speak.SoundCategories.LookAtMe.name)
                 Samuel.Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=Samuel.Speak.SoundCategories.LookAtMe.time_to_sleep)
                 HEAD_GOT_PATTED = time.time()
                 print(f"\nin look_at_me, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
-<<<<<<< HEAD
                 LOOK_AT_ME = False
     
     def move():
@@ -334,8 +270,6 @@ class Samuel:
                 time.sleep(random.uniform(0.5,1.2))                
                 Movement.body.move_up(Movement.body.mid_value)
                 Movement.head_ud.move_down()
-=======
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
         
     
 def main():
@@ -343,15 +277,12 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     print(f"\nin main, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
     # ~ Movement.initial_position()
-<<<<<<< HEAD
     # Set mouth movements to be faster:
     maestro_controller.setSpeed(chan=Movement.mouth.pin_number, speed=100)
     maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=180)
     # Faster wing movement:
     maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=150)
     maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=20)
-=======
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
     try:
         threads = []
         blinking_thread = threading.Thread(target=Samuel.Blink.blink, daemon=True)
@@ -360,11 +291,8 @@ def main():
         threads.append(head_pat_thread)
         look_at_me_thread = threading.Thread(target=Samuel.look_at_me, daemon=True)
         threads.append(look_at_me_thread)
-<<<<<<< HEAD
         movement_thread = threading.Thread(target=Samuel.move, daemon=True)
         threads.append(movement_thread)
-=======
->>>>>>> a2b33287222d40463b5f8b8b94ef9b0f13d39da7
         # ~ samuel_wake_up_thread = threading.Thread(target=Samuel.wake_up, daemon=True)
         # ~ threads.append(samuel_wake_up_thread)
         # ~ samuel_speak_thread = threading.Thread(target=Samuel.Speak.speak, daemon=True)
