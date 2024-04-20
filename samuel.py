@@ -12,6 +12,7 @@ from sys import exit
 import os
 import json
 import struct
+import asyncio
 from Servo import Mouth, HeadUpDown, HeadLeftRight, Wings, Body
 
 
@@ -24,6 +25,11 @@ SLOW_BLINK=33 # 33.3
 # variables to save the current blink values when changing blinking rate is requested:
 SAVED_FAST_BLINK = FAST_BLINK
 SAVED_SLOW_BLINK = SLOW_BLINK
+HEAD_GOT_PATTED = time.time()
+SPEAKING = False
+LOOK_AT_ME = False
+HEAD_PAT = False
+TIME_TO_LOOK_AT_ME = 3
 
 
 # setup:
@@ -40,8 +46,6 @@ class Sensors():
     touch1 = GPIO.input(TOUCH1_PIN)
     
 
-    
-
 class Movement():
     mouth = Mouth(pin_number=0, min_value=6200, max_value=9250)
     # For head up-down movement, lower numbers will turn down, higher numbers will turn up:
@@ -50,13 +54,13 @@ class Movement():
     wings = Wings(pin_number=3, min_value=4600, max_value=5750)
     body = Body(pin_number=4, min_value=5000, max_value=6200)
     
-    def initial_position():
-        # setting all the servoes to the initial value so that they alway know their current position value.
-        Movement.mouth.move(target_value=Movement.mouth.min_value)
-        Movement.head_ud.move(target_value=Movement.head_ud.mid_value)
-        Movement.head_rl.move(target_value=Movement.head_rl.mid_value)
-        Movement.wings.move(target_value=Movement.wings.mid_value)
-        Movement.body.move(target_value=Movement.body.mid_value)
+    # ~ def initial_position():
+        # ~ # setting all the servoes to the initial value so that they alway know their current position value.
+        # ~ Movement.mouth.move(target_value=Movement.mouth.min_value)
+        # ~ Movement.head_ud.move(target_value=Movement.head_ud.mid_value)
+        # ~ Movement.head_rl.move(target_value=Movement.head_rl.mid_value)
+        # ~ Movement.wings.move(target_value=Movement.wings.mid_value)
+        # ~ Movement.body.move(target_value=Movement.body.mid_value)
             
 
 def signal_handler(signal, frame):
@@ -86,7 +90,6 @@ def head_pat():
 
     maestro_controller.close()
     GPIO.cleanup()
-    
 
 
 class Samuel:
@@ -129,12 +132,20 @@ class Samuel:
             GPIO.cleanup()
         
     class Speak:
-        sound_categories = [
-            "head_pat",
-            "kraa",
-            "look_at_me",
-            "talking",
-        ]
+        class SoundCategories:
+            class HeadPat:
+                name = "head_pat"
+                time_to_sleep = 1
+            
+            class Kraa:
+                name = "kraa"
+            
+            class LookAtMe:
+                name = "look_at_me"
+                time_to_sleep = 0.1
+            
+            class Talking:
+                name = "talking"
         
         def choose_random_sound_from_category(category):
             with open(os.path.join(audio_folder_path, "raven_sound_names.json")) as servo_sound_names_json:
@@ -148,8 +159,13 @@ class Samuel:
             Args:
                 audio_track_to_play (str): The name of the music track to be play.
             """
-            maestro_controller.setAccel(0,50)
-            Samuel.Blink.change_blinking_time(fast_blink=1, slow_blink=3) # blink faster
+            global SPEAKING
+            # TODO: cancel the next if and add channels, had pat is more importand than look at me - behave accordingly.
+            if SPEAKING: # Check if audio sound is already being played:
+                print("I'm bussy...\n\n")
+                return
+            SPEAKING = True         
+            # ~ Samuel.Blink.change_blinking_time(fast_blink=1, slow_blink=3) # blink faster
             # Lower body and raise head:
             # ~ Movement.move(body=True, body_direction="down")
             Movement.body.move_down()
@@ -181,11 +197,9 @@ class Samuel:
                     if index == (num_frames_in_track - 1):
                         print("\n\n\n\n\n\n\n\n")
                     if rms_values_for_servo == 1:
-                        # ~ maestro_controller.setTarget(Movement.Mouth.mouth_servo, Movement.Mouth.mouth_max)
                         Movement.mouth.open(target_value=Movement.mouth.max_value)
                     else:
                         # ~ print("naa...")
-                        # ~ maestro_controller.setTarget(Movement.Mouth.mouth_servo, Movement.Mouth.mouth_min)
                         Movement.mouth.close(target_value=Movement.mouth.min_value)
                     pygame.time.wait(int(frame_duration_for_pygame_to_wait * 950)) # sleep for as long as the frame play - ideal to double by 1040
 
@@ -198,18 +212,77 @@ class Samuel:
                 Samuel.Blink.restore_blinking_time()
             return
 
+                SPEAKING = False
+                # ~ Samuel.Blink.restore_blinking_time()
+            return
+
+    def head_pat():
+        global HEAD_GOT_PATTED
+        global HEAD_PAT
+        while True:
+            if GPIO.input(TOUCH1_PIN):
+                HEAD_PAT = True
+                HEAD_GOT_PATTED = time.time()
+                audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=Samuel.Speak.SoundCategories.HeadPat.name)
+                Samuel.Blink.change_blinking_time(fast_blink=0, slow_blink=2) # blink faster
+                # ~ time.sleep(random.uniform(0,0.8))
+                print("Mmmmmm this feels nice!")
+                Samuel.Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=Samuel.Speak.SoundCategories.HeadPat.time_to_sleep)
+                HEAD_PAT = False
+                Samuel.Blink.restore_blinking_time()
+                HEAD_GOT_PATTED = time.time()
+                print(f"\nin head_pat, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
+        maestro_controller.close()
+        GPIO.cleanup()
+    
+    def look_at_me():
+        global HEAD_GOT_PATTED
+        global LOOK_AT_ME
+        while True:
+            current_time = time.time()
+            if (current_time - HEAD_GOT_PATTED) > TIME_TO_LOOK_AT_ME and not SPEAKING:
+                LOOK_AT_ME = True
+                audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=Samuel.Speak.SoundCategories.LookAtMe.name)
+                Samuel.Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=Samuel.Speak.SoundCategories.LookAtMe.time_to_sleep)
+                HEAD_GOT_PATTED = time.time()
+                print(f"\nin look_at_me, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
+                LOOK_AT_ME = False
+    
+    def move():
+        # This thread allow Samuel to move while doin other routines such as speaking. The movement is always available in the background.
+        while True:
+            if LOOK_AT_ME:
+                Movement.wings.wave()
+            if HEAD_PAT:
+                print("!!!!!!!! In move, head got patted")
+                Movement.body.move_down()
+                Movement.head_ud.move_up()
+                time.sleep(random.uniform(0.5,1.2))                
+                Movement.body.move_up(Movement.body.mid_value)
+                Movement.head_ud.move_down()
         
     
 def main():
-    # Assign handler function for the user termination option (cntlraven+x):
+    # Assign handler function for the user termination option (cntl+x):
     signal.signal(signal.SIGINT, signal_handler)
-    Movement.initial_position()
+    print(f"\nin main, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
+    # ~ Movement.initial_position()
+    # Set mouth movements to be faster:
+    maestro_controller.setSpeed(chan=Movement.mouth.pin_number, speed=100)
+    maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=180)
+    # Faster wing movement:
+    maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=150)
+    maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=20)
     try:
         threads = []
         blinking_thread = threading.Thread(target=Samuel.Blink.blink, daemon=True)
         threads.append(blinking_thread)
         head_pat_thread = threading.Thread(target=head_pat, daemon=True)
         threads.append(head_pat_thread)
+        look_at_me_thread = threading.Thread(target=Samuel.look_at_me, daemon=True)
+        threads.append(look_at_me_thread)
+        movement_thread = threading.Thread(target=Samuel.move, daemon=True)
+        threads.append(movement_thread)
         # ~ samuel_wake_up_thread = threading.Thread(target=Samuel.wake_up, daemon=True)
         # ~ threads.append(samuel_wake_up_thread)
         # ~ samuel_speak_thread = threading.Thread(target=Samuel.Speak.speak, daemon=True)

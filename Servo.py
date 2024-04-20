@@ -1,5 +1,6 @@
 import maestro
 import random
+from time import sleep
 
 maestro_controller = maestro.Controller(ttyStr='/dev/ttyACM0')
 
@@ -22,7 +23,12 @@ class Servo:
 		return
 	
 	def generate_random_value(self, destiny):
+<<<<<<< Updated upstream
 		current_position = maestro_controller.getPosition(self.pin_number)
+=======
+		# destiny is the rwquested value for servo, in int.
+		current_position = self.get_position()
+>>>>>>> Stashed changes
 		if current_position == destiny:
 			return current_position
 		# Make sure that the higer number is the current_position
@@ -123,7 +129,18 @@ class Wings(Servo):
 		self.move_max(target_value)
 	
 	def move_down(self, target_value=None):
-		self.move_min(target_value)		
+		self.move_min(target_value)
+	
+	def random_sleep_value():
+		random_float = random.random()
+		return random_float ** 2 * 3
+	
+	def wave(self):
+		for index in range(1,3):
+			self.move_up()
+			sleep(Wings.random_sleep_value())
+			self.move_down()
+			sleep(Wings.random_sleep_value())
 
 
 class Body(Servo):
