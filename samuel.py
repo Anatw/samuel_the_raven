@@ -29,7 +29,7 @@ HEAD_GOT_PATTED = time.time()
 SPEAKING = False
 LOOK_AT_ME = False
 HEAD_PAT = False
-TIME_TO_LOOK_AT_ME = 3
+TIME_TO_LOOK_AT_ME = 20
 
 
 # setup:
@@ -53,44 +53,12 @@ class Movement():
     head_rl = HeadLeftRight(pin_number=2, min_value=3300, max_value=7100)
     wings = Wings(pin_number=3, min_value=4600, max_value=5750)
     body = Body(pin_number=4, min_value=5000, max_value=6200)
-    
-    # ~ def initial_position():
-        # ~ # setting all the servoes to the initial value so that they alway know their current position value.
-        # ~ Movement.mouth.move(target_value=Movement.mouth.min_value)
-        # ~ Movement.head_ud.move(target_value=Movement.head_ud.mid_value)
-        # ~ Movement.head_rl.move(target_value=Movement.head_rl.mid_value)
-        # ~ Movement.wings.move(target_value=Movement.wings.mid_value)
-        # ~ Movement.body.move(target_value=Movement.body.mid_value)
             
 
 def signal_handler(signal, frame):
     # This function is meant to handle exit by the user (cntl+x).
     GPIO.cleanup()
     exit(0)
-
-
-def head_pat():
-    # TODO: count time from last head_pat. If greater than X, play a look_at_me sound.
-    while True:
-        head_pat = "head_pat"
-        audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=head_pat)
-        if GPIO.input(TOUCH1_PIN):
-            # ~ maestro_controller.setAccel(1,4)
-            # ~ Movement.wings.move_down()
-            time.sleep(random.uniform(0,0.8))
-            Movement.body.move_down()
-            Movement.head_ud.move_up()
-            # ~ maestro_controller.setTarget(1,5700)
-            print("Mmmmmm this feels nice!")
-            Samuel.Speak.speak(audio_track_to_play=audio_track_to_play)
-            time.sleep(0.5)
-            # ~ maestro_controller.setTarget(1,4000)
-            Movement.body.move_up()
-            Movement.head_ud.move_down()
-
-    maestro_controller.close()
-    GPIO.cleanup()
-    exit(0)  
 
 
 class Samuel:
@@ -102,21 +70,19 @@ class Samuel:
         pass
         
     class Blink:
+        blink_event = threading.Event()
+            
         def change_blinking_time(fast_blink, slow_blink):
-            print("change_blinking_time")
+            print("\n\nchange_blinking_time\n")
             global FAST_BLINK
             global SLOW_BLINK
             global SAVED_FAST_BLINK
             global SAVED_SLOW_BLINK
-            # ~ if fast_blink != FAST_BLINK or slow_blink != SLOW_BLINK:
+            Samuel.Blink.blink_event.set()
             SAVED_FAST_BLINK = FAST_BLINK
             SAVED_SLOW_BLINK = SLOW_BLINK
             FAST_BLINK = fast_blink
             SLOW_BLINK = slow_blink
-            # ~ # If the blinking time has already changed - don't change the saved values
-            # ~ if SAVED_FAST_BLINK or SAVED_SLOW_BLINK:
-                # ~ return
-
             print(f"In change_blinking_time, \nSAVED_FAST_BLINK={SAVED_FAST_BLINK}\n "\
             f"SAVED_SLOW_BLINK={SAVED_SLOW_BLINK}\nFAST_BLINK={FAST_BLINK}\nSLOW_BLINK={SLOW_BLINK}")
 
@@ -135,13 +101,13 @@ class Samuel:
         def blink():
             while True:
                 blink_duration = 0.115
-                time.sleep(random.uniform(FAST_BLINK,SLOW_BLINK)) #time.sleep(random.uniform(6.7, 33.3))
-                print("fast blink:", FAST_BLINK, "slow blink:", SLOW_BLINK)
                 GPIO.output(LED_PIN,GPIO.LOW)
                 time.sleep(blink_duration)
                 GPIO.output(LED_PIN,GPIO.HIGH)
-                # time.sleep(blink_duration)
-                # ~ print("blinking")
+                print("########### fast blink:", FAST_BLINK, "slow blink:", SLOW_BLINK)
+                Samuel.Blink.blink_event.wait(random.uniform(FAST_BLINK,SLOW_BLINK))
+                if Samuel.Blink.blink_event.is_set():
+                    Samuel.Blink.blink_event.clear()
 
             GPIO.cleanup()
         
@@ -149,14 +115,14 @@ class Samuel:
         class SoundCategories:
             class HeadPat:
                 name = "head_pat"
-                time_to_sleep = 1
+                time_to_sleep = 218 # When only head_pat theread is available this should be changed to 1044
             
             class Kraa:
                 name = "kraa"
             
             class LookAtMe:
                 name = "look_at_me"
-                time_to_sleep = 0.1
+                time_to_sleep = -0.008
             
             class Talking:
                 name = "talking"
@@ -171,7 +137,7 @@ class Samuel:
             Play an mp3 music file.
             
             Args:
-                audio_track_to_play (str): The name of the music track to be play.
+                audio_track_to_play (str): The name of the sound track to be play.
             """
             global SPEAKING
             # TODO: cancel the next if and add channels, had pat is more importand than look at me - behave accordingly.
@@ -181,13 +147,11 @@ class Samuel:
             SPEAKING = True         
             global TALKING
             # ~ Samuel.Blink.change_blinking_time(fast_blink=1, slow_blink=3) # blink faster
-            # Lower body and raise head:
             with open(os.path.join(audio_folder_path, "servo_ready_sound_rms_dict.json")) as servo_ready_rms_dict_json:
                 rms_dict = json.load(servo_ready_rms_dict_json)
                 # Play the audio file:
                 audio_file_path = os.path.join(audio_folder_path, audio_track_to_play)
                 audio = MP3(audio_file_path)
-                # ~ sample_width = 16
                 audio_file_duration = audio.info.length
                 print(f"now playing audio file {audio_track_to_play}\n")
                 print("audio_file_duration: ", audio_file_duration)
@@ -205,21 +169,17 @@ class Samuel:
                 cluster_to_animate = random.randint(0,(len(rms_dict[audio_track_to_play].items())-2))
                 print(f"Cluster choosen for animation: {cluster_to_animate}")
                 for index, rms_values_for_servo in enumerate(rms_dict[audio_track_to_play][f"{cluster_to_animate}"]):
-                    # ~ import ipdb; ipdb.set_trace()
                     if index == (num_frames_in_track - 1):
                         print("\n\n\n\n\n\n\n\n")
                     if rms_values_for_servo == 1:
                         Movement.mouth.open(target_value=Movement.mouth.max_value)
                     else:
-                        # ~ print("naa...")
                         Movement.mouth.close(target_value=Movement.mouth.min_value)
                     pygame.time.wait(int(frame_duration_for_pygame_to_wait * time_to_sleep)) # sleep for as long as the frame play - ideal to double by 1040
 
                 timer_end = time.time()
                 time_passed = timer_end - timer_start
                 print(f"time passed: \n{time_passed}\naudio_file_duration: \n {audio_file_duration}")
-                # ~ if time_passed < audio_file_duration:
-                    # ~ raise
                 pygame.quit()
                 SPEAKING = False
                 # ~ Samuel.Blink.restore_blinking_time()
@@ -233,14 +193,14 @@ class Samuel:
                 HEAD_PAT = True
                 HEAD_GOT_PATTED = time.time()
                 audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=Samuel.Speak.SoundCategories.HeadPat.name)
-                Samuel.Blink.change_blinking_time(fast_blink=0, slow_blink=2) # blink faster
+                Samuel.Blink.change_blinking_time(fast_blink=0.3, slow_blink=2.6) # blink faster
                 # ~ time.sleep(random.uniform(0,0.8))
                 print("Mmmmmm this feels nice!")
                 Samuel.Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=Samuel.Speak.SoundCategories.HeadPat.time_to_sleep)
                 HEAD_PAT = False
                 Samuel.Blink.restore_blinking_time()
                 HEAD_GOT_PATTED = time.time()
-                print(f"\nin head_pat, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
+                print(f"\nIn head_pat, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
 
         maestro_controller.close()
         GPIO.cleanup()
@@ -252,25 +212,56 @@ class Samuel:
             current_time = time.time()
             if (current_time - HEAD_GOT_PATTED) > TIME_TO_LOOK_AT_ME and not SPEAKING:
                 LOOK_AT_ME = True
+                Samuel.Blink.change_blinking_time(fast_blink=0.5, slow_blink=3) # blink faster
                 audio_track_to_play = Samuel.Speak.choose_random_sound_from_category(category=Samuel.Speak.SoundCategories.LookAtMe.name)
                 Samuel.Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=Samuel.Speak.SoundCategories.LookAtMe.time_to_sleep)
                 HEAD_GOT_PATTED = time.time()
                 print(f"\nin look_at_me, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
+                Samuel.Blink.restore_blinking_time()
                 LOOK_AT_ME = False
+ 
+    # ~ def asyncio_look_at_me():
+        # ~ tasks = [
+            # ~ move_wings,
+            # ~ move_head_rl,
+            # ~ move_head_ud,
+        # ~ ]
+        # ~ await asyncio.gather(*tasks)
+
+               
+    class Move:
+        def move_wings():
+            Movement.wings.gesticulation()
+            
+        def move_head_rl():
+            Movement.head_rl.gesticulation()
+           
+        def move_head_ud():
+            Movement.head_ud.gesticulation()
+
+        def move():
+            # This thread allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
+            while True:
+                if LOOK_AT_ME:
+                   # TODO: add asyncio so that all these movement will take place asyncroniously.
+                    wings_thread = threading.Thread(target=Samuel.Move.move_wings())
+                    head_rl_thread = threading.Thread(target=Samuel.Move.move_head_rl())
+                    head_ud_thread = threading.Thread(target=Samuel.Move.move_head_ud())
+                    wings_thread.start()
+                    head_rl_thread.start()
+                    head_ud_thread.start()
+                    wings_thread.join()
+                    head_rl_thread.join()
+                    head_ud_thread.join()
+                    
+                if HEAD_PAT:
+                    print("!!!!!!!! In move, head got patted")
+                    Movement.body.move_down()
+                    Movement.head_ud.move_up()
+                    time.sleep(random.uniform(0.5,1.2))                
+                    Movement.body.move_up(Movement.body.mid_value)
+                    Movement.head_ud.move_down()
     
-    def move():
-        # This thread allow Samuel to move while doin other routines such as speaking. The movement is always available in the background.
-        while True:
-            if LOOK_AT_ME:
-                Movement.wings.wave()
-            if HEAD_PAT:
-                print("!!!!!!!! In move, head got patted")
-                Movement.body.move_down()
-                Movement.head_ud.move_up()
-                time.sleep(random.uniform(0.5,1.2))                
-                Movement.body.move_up(Movement.body.mid_value)
-                Movement.head_ud.move_down()
-        
     
 def main():
     # Assign handler function for the user termination option (cntl+x):
@@ -281,8 +272,9 @@ def main():
     maestro_controller.setSpeed(chan=Movement.mouth.pin_number, speed=100)
     maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=180)
     # Faster wing movement:
-    maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=150)
-    maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=20)
+    maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=20)
+    maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=120)
+    # TODO: I need to check what is the new range for the min and max of the wings.
     try:
         threads = []
         blinking_thread = threading.Thread(target=Samuel.Blink.blink, daemon=True)
@@ -291,22 +283,19 @@ def main():
         threads.append(head_pat_thread)
         look_at_me_thread = threading.Thread(target=Samuel.look_at_me, daemon=True)
         threads.append(look_at_me_thread)
-        movement_thread = threading.Thread(target=Samuel.move, daemon=True)
+        movement_thread = threading.Thread(target=Samuel.Move.move, daemon=True)
         threads.append(movement_thread)
         # ~ samuel_wake_up_thread = threading.Thread(target=Samuel.wake_up, daemon=True)
         # ~ threads.append(samuel_wake_up_thread)
         # ~ samuel_speak_thread = threading.Thread(target=Samuel.Speak.speak, daemon=True)
         # ~ threads.append(samuel_speak_thread)
-        print("1")
         for thread in threads:
             thread.start()
         # This step must be taken only after starting all the threads:
         cntl_c_thread = threading.Event()
         cntl_c_thread.wait()
-        print("2")
         for thread in threads:
             thread.join()
-        print("3")
     except:
         for thread in threads:
             thread.join()
