@@ -44,6 +44,17 @@ class Servo:
 		if not target_value:
 			target_value = self.generate_random_value(destiny=self.min_value)
 		self.set_position(target_value=target_value)
+	
+	def random_sleep_value():
+		random_float = random.random()
+		return random_float ** 2 * 3
+	
+	def gesticulation(self):
+		for index in range(1,3):
+			self.move_max()
+			sleep(Servo.random_sleep_value())
+			self.move_min()
+			sleep(Servo.random_sleep_value())
 
 
 class Mouth(Servo):
@@ -128,17 +139,6 @@ class Wings(Servo):
 	
 	def move_down(self, target_value=None):
 		self.move_min(target_value)
-	
-	def random_sleep_value():
-		random_float = random.random()
-		return random_float ** 2 * 3
-	
-	def wave(self):
-		for index in range(1,3):
-			self.move_up()
-			sleep(Wings.random_sleep_value())
-			self.move_down()
-			sleep(Wings.random_sleep_value())
 
 
 class Body(Servo):
