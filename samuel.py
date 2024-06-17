@@ -13,6 +13,7 @@ import os
 import json
 import struct
 import asyncio
+import multiprocessing
 from Servo import Mouth, HeadUpDown, HeadLeftRight, Wings, Body
 
 
@@ -29,7 +30,7 @@ HEAD_GOT_PATTED = time.time()
 SPEAKING = False
 LOOK_AT_ME = False
 HEAD_PAT = False
-TIME_TO_LOOK_AT_ME = 20
+TIME_TO_LOOK_AT_ME = 10
 
 
 # setup:
@@ -47,12 +48,37 @@ class Sensors():
     
 
 class Movement():
-    mouth = Mouth(pin_number=0, min_value=6200, max_value=9250)
+    mouth = Mouth(
+        pin_number=0,
+        min_value=6200,
+        max_value=9250,
+        gesticulation_repetition=1
+    )
     # For head up-down movement, lower numbers will turn down, higher numbers will turn up:
-    head_ud = HeadUpDown(pin_number=1, min_value=4450, max_value=8400)
-    head_rl = HeadLeftRight(pin_number=2, min_value=3300, max_value=7100)
-    wings = Wings(pin_number=3, min_value=4600, max_value=5750)
-    body = Body(pin_number=4, min_value=5000, max_value=6200)
+    head_ud = HeadUpDown(
+        pin_number=1,
+        min_value=4450,
+        max_value=8400,
+        gesticulation_repetition=4
+    )
+    head_rl = HeadLeftRight(
+        pin_number=2,
+        min_value=3300,
+        max_value=7100,
+        gesticulation_repetition=5
+    )
+    wings = Wings(
+        pin_number=3,
+        min_value=4600,
+        max_value=5750,
+        gesticulation_repetition=3
+    )
+    body = Body(
+        pin_number=4,
+        min_value=5000,
+        max_value=6200,
+        gesticulation_repetition=2
+    )
             
 
 def signal_handler(signal, frame):
@@ -105,6 +131,9 @@ class Samuel:
                 time.sleep(blink_duration)
                 GPIO.output(LED_PIN,GPIO.HIGH)
                 print("########### fast blink:", FAST_BLINK, "slow blink:", SLOW_BLINK)
+                # TODO: resolve blonking in blink, can sometimes be Nonetype, I think that this hapens 
+                # when I don't exit correctly from the look_at_me - the transitions between look_at_me and head_pat 
+                # in both directions.
                 Samuel.Blink.blink_event.wait(random.uniform(FAST_BLINK,SLOW_BLINK))
                 if Samuel.Blink.blink_event.is_set():
                     Samuel.Blink.blink_event.clear()
@@ -230,37 +259,58 @@ class Samuel:
 
                
     class Move:
-        def move_wings():
-            Movement.wings.gesticulation()
-            
-        def move_head_rl():
-            Movement.head_rl.gesticulation()
+        # gesticulation
+        async def move_wings():
+            print("move_wings")
+            Movement.wings.move_up()
+            await asyncio.sleep(random.uniform(0.5,1.2))
+            Movement.wings.move_down()
+
+        async def move_head_rl():
+            print("move_head_rl")
+            Movement.head_rl.move_right()
+            await asyncio.sleep(random.uniform(0.5,1.2))
+            Movement.head_rl.move_left()
            
-        def move_head_ud():
-            Movement.head_ud.gesticulation()
+        async def move_head_ud():
+            print("move_head_ud")
+            Movement.head_ud.move_down()
+            await asyncio.sleep(random.uniform(0.5,1.2))
+            Movement.head_ud.move_up()
+            
+        async def move_body():
+            print("move_head_ud")
+            Movement.body.move_up()
+            await asyncio.sleep(random.uniform(0.5,1.2))
+            Movement.body.move_down()
+            
+        async def async_move():
+            await asyncio.gather(
+                Samuel.Move.move_wings(),
+                Samuel.Move.move_head_rl(),
+                Samuel.Move.move_head_ud(),
+                Samuel.Move.move_body(),
+            )
 
         def move():
             # This thread allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
             while True:
                 if LOOK_AT_ME:
-                   # TODO: add asyncio so that all these movement will take place asyncroniously.
-                    wings_thread = threading.Thread(target=Samuel.Move.move_wings())
-                    head_rl_thread = threading.Thread(target=Samuel.Move.move_head_rl())
-                    head_ud_thread = threading.Thread(target=Samuel.Move.move_head_ud())
-                    wings_thread.start()
-                    head_rl_thread.start()
-                    head_ud_thread.start()
-                    wings_thread.join()
-                    head_rl_thread.join()
-                    head_ud_thread.join()
-                    
+                   # TODO: check why the asyncio methods still don't take place concurrently.
+                   # ~ asyncio.run(Samuel.Move.async_move())
+                   process = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
+                   process.start()
+                   process.join()
+                   
                 if HEAD_PAT:
                     print("!!!!!!!! In move, head got patted")
                     Movement.body.move_down()
                     Movement.head_ud.move_up()
-                    time.sleep(random.uniform(0.5,1.2))                
+                    time.sleep(random.uniform(0.5,1.2))
+                    Movement.head_rl.move_right()                
                     Movement.body.move_up(Movement.body.mid_value)
                     Movement.head_ud.move_down()
+                    Movement.head_rl.move_left()
     
     
 def main():

@@ -11,11 +11,14 @@ class Servo:
 		max_value=None,
 		min_value=None,
 		pin_number=None,
+		gesticulation_repetition=None
 	):
 		# pin_number (int): servo number on the Pololu Maestro controller
 		self.max_value = max_value
 		self.min_value = min_value
 		self.pin_number = pin_number
+		self.gesticulation_repetition = gesticulation_repetition
+
 		self.mid_value = int((min_value + max_value) / 2)
 	
 	def get_position(self):
@@ -50,7 +53,7 @@ class Servo:
 		return random_float ** 2 * 3
 	
 	def gesticulation(self):
-		for index in range(1,3):
+		for index in range(1,self.gesticulation_repetition):
 			self.move_max()
 			sleep(Servo.random_sleep_value())
 			self.move_min()
@@ -63,11 +66,13 @@ class Mouth(Servo):
 		max_value,
 		min_value,
 		pin_number,
+		gesticulation_repetition,
 	):
 		super().__init__(
 			max_value,
 			min_value,
 			pin_number,
+			gesticulation_repetition,
 		)
 	
 	def open(self, target_value=None):
@@ -83,11 +88,13 @@ class HeadUpDown(Servo):
 		max_value,
 		min_value,
 		pin_number,
+		gesticulation_repetition,
 	):
 		super().__init__(
 			max_value,
 			min_value,
 			pin_number,
+			gesticulation_repetition,
 		)
 	
 	def move_up(self, target_value=None):
@@ -105,11 +112,13 @@ class HeadLeftRight(Servo):
 		max_value,
 		min_value,
 		pin_number,
+		gesticulation_repetition,
 	):
 		super().__init__(
 			max_value,
 			min_value,
 			pin_number,
+			gesticulation_repetition,
 		)
 	
 	def move_left(self, target_value=None):
@@ -127,11 +136,13 @@ class Wings(Servo):
 		max_value,
 		min_value,
 		pin_number,
+		gesticulation_repetition,
 	):
 		super().__init__(
 			max_value,
 			min_value,
 			pin_number,
+			gesticulation_repetition,
 		)
 		
 	def move_up(self, target_value=None):
@@ -149,11 +160,13 @@ class Body(Servo):
 		max_value,
 		min_value,
 		pin_number,
+		gesticulation_repetition,
 	):
 		super().__init__(
 			max_value,
 			min_value,
 			pin_number,
+			gesticulation_repetition,
 		)
 
 	def move_up(self, target_value=None):
