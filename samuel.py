@@ -31,6 +31,7 @@ SPEAKING = False
 LOOK_AT_ME = False
 HEAD_PAT = False
 TIME_TO_LOOK_AT_ME = 10
+TIME_TO_KRAA = None
 
 
 # setup:
@@ -97,6 +98,7 @@ class Samuel:
         
     class Blink:
         blink_event = threading.Event()
+        change_blinking_rate_event = threading.Event()
             
         def change_blinking_time(fast_blink, slow_blink):
             print("\n\nchange_blinking_time\n")
@@ -105,24 +107,21 @@ class Samuel:
             global SAVED_FAST_BLINK
             global SAVED_SLOW_BLINK
             Samuel.Blink.blink_event.set()
-            SAVED_FAST_BLINK = FAST_BLINK
-            SAVED_SLOW_BLINK = SLOW_BLINK
+            Samuel.Blink.change_blinking_rate_event.set()
             FAST_BLINK = fast_blink
             SLOW_BLINK = slow_blink
             print(f"In change_blinking_time, \nSAVED_FAST_BLINK={SAVED_FAST_BLINK}\n "\
             f"SAVED_SLOW_BLINK={SAVED_SLOW_BLINK}\nFAST_BLINK={FAST_BLINK}\nSLOW_BLINK={SLOW_BLINK}")
 
-            
         def restore_blinking_time():
             print("restore_blinking_time")
             global FAST_BLINK
             global SLOW_BLINK
             global SAVED_FAST_BLINK
             global SAVED_SLOW_BLINK
+            Samuel.Blink.change_blinking_rate_event.wait()
             FAST_BLINK = SAVED_FAST_BLINK
             SLOW_BLINK = SAVED_SLOW_BLINK
-            SAVED_FAST_BLINK = None
-            SAVED_SLOW_BLINK = None
             
         def blink():
             while True:
@@ -131,20 +130,16 @@ class Samuel:
                 time.sleep(blink_duration)
                 GPIO.output(LED_PIN,GPIO.HIGH)
                 print("########### fast blink:", FAST_BLINK, "slow blink:", SLOW_BLINK)
-                # TODO: resolve blonking in blink, can sometimes be Nonetype, I think that this hapens 
-                # when I don't exit correctly from the look_at_me - the transitions between look_at_me and head_pat 
-                # in both directions.
                 Samuel.Blink.blink_event.wait(random.uniform(FAST_BLINK,SLOW_BLINK))
                 if Samuel.Blink.blink_event.is_set():
                     Samuel.Blink.blink_event.clear()
-
             GPIO.cleanup()
         
     class Speak:
         class SoundCategories:
             class HeadPat:
                 name = "head_pat"
-                time_to_sleep = 218 # When only head_pat theread is available this should be changed to 1044
+                time_to_sleep = 218 # When only the head_pat theread is available this should be changed to 1044
             
             class Kraa:
                 name = "kraa"
@@ -175,7 +170,6 @@ class Samuel:
                 return
             SPEAKING = True         
             global TALKING
-            # ~ Samuel.Blink.change_blinking_time(fast_blink=1, slow_blink=3) # blink faster
             with open(os.path.join(audio_folder_path, "servo_ready_sound_rms_dict.json")) as servo_ready_rms_dict_json:
                 rms_dict = json.load(servo_ready_rms_dict_json)
                 # Play the audio file:
@@ -204,14 +198,14 @@ class Samuel:
                         Movement.mouth.open(target_value=Movement.mouth.max_value)
                     else:
                         Movement.mouth.close(target_value=Movement.mouth.min_value)
-                    pygame.time.wait(int(frame_duration_for_pygame_to_wait * time_to_sleep)) # sleep for as long as the frame play - ideal to double by 1040
+                    # sleep for as long as the frame play - ideal to double by 1040
+                    pygame.time.wait(int(frame_duration_for_pygame_to_wait * time_to_sleep))
 
                 timer_end = time.time()
                 time_passed = timer_end - timer_start
                 print(f"time passed: \n{time_passed}\naudio_file_duration: \n {audio_file_duration}")
                 pygame.quit()
                 SPEAKING = False
-                # ~ Samuel.Blink.restore_blinking_time()
             return
 
     def head_pat():
@@ -248,16 +242,7 @@ class Samuel:
                 print(f"\nin look_at_me, HEAD_GOT_PATTED: {HEAD_GOT_PATTED}\n")
                 Samuel.Blink.restore_blinking_time()
                 LOOK_AT_ME = False
- 
-    # ~ def asyncio_look_at_me():
-        # ~ tasks = [
-            # ~ move_wings,
-            # ~ move_head_rl,
-            # ~ move_head_ud,
-        # ~ ]
-        # ~ await asyncio.gather(*tasks)
-
-               
+                
     class Move:
         # gesticulation
         async def move_wings():
@@ -291,13 +276,11 @@ class Samuel:
                 Samuel.Move.move_head_ud(),
                 Samuel.Move.move_body(),
             )
-
+                
         def move():
             # This thread allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
             while True:
                 if LOOK_AT_ME:
-                   # TODO: check why the asyncio methods still don't take place concurrently.
-                   # ~ asyncio.run(Samuel.Move.async_move())
                    process = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
                    process.start()
                    process.join()
@@ -311,6 +294,20 @@ class Samuel:
                     Movement.body.move_up(Movement.body.mid_value)
                     Movement.head_ud.move_down()
                     Movement.head_rl.move_left()
+
+                else:
+                    movements = [
+                        Movement.head_rl.move_right(),
+                        Movement.head_rl.move_left(),
+                        Movement.head_ud.move_up(),
+                        Movement.head_ud.move_down(),
+                        Movement.wings.move_up(),
+                        Movement.wings.move_down(),
+                        Movement.body.move_up(),
+                        Movement.body.move_down(),
+                    ]
+                    random.choice(movements)
+                    time.sleep(random.uniform(0.5,2.5))
     
     
 def main():
