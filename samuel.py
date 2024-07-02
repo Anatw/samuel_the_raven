@@ -16,6 +16,8 @@ import asyncio
 import multiprocessing
 from Servo import Mouth, HeadUpDown, HeadLeftRight, Wings, Body
 
+from utils import get_random_weighted_sleep_time
+
 
 LED_PIN = 24 # board pin no. 12
 MOTION_PIN = 17 # board pin no. 11
@@ -30,7 +32,7 @@ HEAD_GOT_PATTED = time.time()
 SPEAKING = False
 LOOK_AT_ME = False
 HEAD_PAT = False
-TIME_TO_LOOK_AT_ME = 10
+TIME_TO_LOOK_AT_ME = 60
 TIME_TO_KRAA = None
 
 
@@ -290,7 +292,6 @@ class Samuel:
             )
         
         def get_random_duo_combination():
-            # ~ numbers = movements.keys()
             first_number = random.choice(Samuel.Move.movements_keys)
             first_digit = first_number // 10
             # Create a list of numbers that do not start with the first digit
@@ -305,27 +306,33 @@ class Samuel:
                 
         def move():
             # This thread allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
+            should_start_movement_cycle = True
             while True:
+                if should_start_movement_cycle:
+                    starting_time = time.time()
+                    random_time_to_sleep = get_random_weighted_sleep_time()
+                    print(f"random_time_to_sleep = {random_time_to_sleep}")
+                    should_start_movement_cycle = False
                 if LOOK_AT_ME:
-                   process1 = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
-                   process1.start()
-                   process1.join()
-                   
+                    print("!! In move, LOOK_AT_ME")
+                    process1 = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
+                    process1.start()
+                    process1.join()
                 if HEAD_PAT:
-                   print("!!!!!!!! In move, head got patted")
-                   Movement.body.move_down()
-                   Movement.head_ud.move_up()
-                   time.sleep(random.uniform(0.5,1.2))
-                   Movement.head_rl.move_right()                
-                   Movement.body.move_up(Movement.body.mid_value)
-                   Movement.head_ud.move_down()
-                   Movement.head_rl.move_left()
-
-                else:
-                   process2 = multiprocessing.Process(target=asyncio.run(Samuel.Move.random_async_move()))
-                   process2.start()
-                   process2.join()
-                   time.sleep(random.uniform(0.5,2.5))
+                    print("!!!!!!!! In move, head got patted")
+                    Movement.body.move_down()
+                    Movement.head_ud.move_up()
+                    time.sleep(random.uniform(0.5,1.2))
+                    Movement.head_rl.move_right()                
+                    Movement.body.move_up(Movement.body.mid_value)
+                    Movement.head_ud.move_down()
+                    Movement.head_rl.move_left()
+                if time.time() >= starting_time + random_time_to_sleep:
+                    print("!!! In move() if time has come to strech")
+                    process2 = multiprocessing.Process(target=asyncio.run(Samuel.Move.random_async_move()))
+                    process2.start()
+                    process2.join()
+                    should_start_movement_cycle = True
     
     
 def main():
