@@ -146,10 +146,10 @@ class Wings(Servo):
 		)
 		
 	def move_up(self, target_value=None):
-		self.move_max(target_value)
+		self.move_min(target_value)
 	
 	def move_down(self, target_value=None):
-		self.move_min(target_value)
+		self.move_max(target_value)
 
 
 class Body(Servo):
