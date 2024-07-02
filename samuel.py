@@ -244,6 +244,18 @@ class Samuel:
                 LOOK_AT_ME = False
                 
     class Move:
+        movements = {
+            11: "Movement.head_rl.move_right()",
+            12: "Movement.head_rl.move_left()",
+            21: "Movement.head_ud.move_up()",
+            22: "Movement.head_ud.move_down()",
+            31: "Movement.body.move_up()",
+            32: "Movement.body.move_down()",
+            41: "Movement.wings.move_up()",
+            42: "Movement.wings.move_down()",
+        }
+        movements_keys = list(movements.keys())
+        
         # gesticulation
         async def move_wings():
             print("move_wings")
@@ -276,38 +288,44 @@ class Samuel:
                 Samuel.Move.move_head_ud(),
                 Samuel.Move.move_body(),
             )
+        
+        def get_random_duo_combination():
+            # ~ numbers = movements.keys()
+            first_number = random.choice(Samuel.Move.movements_keys)
+            first_digit = first_number // 10
+            # Create a list of numbers that do not start with the first digit
+            remaining_numbers = [number for number in Samuel.Move.movements_keys if number // 10 != first_digit]
+            second_number = random.choice(remaining_numbers)
+            return Samuel.Move.movements[first_number], Samuel.Move.movements[second_number]
+        
+        async def random_async_move():
+            random_duo_combination = Samuel.Move.get_random_duo_combination()
+            exec(random_duo_combination[0])
+            exec(random_duo_combination[1])
                 
         def move():
             # This thread allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
             while True:
                 if LOOK_AT_ME:
-                   process = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
-                   process.start()
-                   process.join()
+                   process1 = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
+                   process1.start()
+                   process1.join()
                    
                 if HEAD_PAT:
-                    print("!!!!!!!! In move, head got patted")
-                    Movement.body.move_down()
-                    Movement.head_ud.move_up()
-                    time.sleep(random.uniform(0.5,1.2))
-                    Movement.head_rl.move_right()                
-                    Movement.body.move_up(Movement.body.mid_value)
-                    Movement.head_ud.move_down()
-                    Movement.head_rl.move_left()
+                   print("!!!!!!!! In move, head got patted")
+                   Movement.body.move_down()
+                   Movement.head_ud.move_up()
+                   time.sleep(random.uniform(0.5,1.2))
+                   Movement.head_rl.move_right()                
+                   Movement.body.move_up(Movement.body.mid_value)
+                   Movement.head_ud.move_down()
+                   Movement.head_rl.move_left()
 
                 else:
-                    movements = [
-                        Movement.head_rl.move_right(),
-                        Movement.head_rl.move_left(),
-                        Movement.head_ud.move_up(),
-                        Movement.head_ud.move_down(),
-                        Movement.wings.move_up(),
-                        Movement.wings.move_down(),
-                        Movement.body.move_up(),
-                        Movement.body.move_down(),
-                    ]
-                    random.choice(movements)
-                    time.sleep(random.uniform(0.5,2.5))
+                   process2 = multiprocessing.Process(target=asyncio.run(Samuel.Move.random_async_move()))
+                   process2.start()
+                   process2.join()
+                   time.sleep(random.uniform(0.5,2.5))
     
     
 def main():
@@ -321,7 +339,6 @@ def main():
     # Faster wing movement:
     maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=20)
     maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=120)
-    # TODO: I need to check what is the new range for the min and max of the wings.
     try:
         threads = []
         blinking_thread = threading.Thread(target=Samuel.Blink.blink, daemon=True)
