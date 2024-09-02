@@ -306,12 +306,22 @@ class Samuel:
         def move():
             # This thread allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
             while True:
+<<<<<<< Updated upstream
+=======
+                print("%%%%%%%%%%%% True")
+                if should_start_movement_cycle:
+                    starting_time = time.time()
+                    random_time_to_sleep = get_random_weighted_sleep_time()
+                    print(f"random_time_to_sleep = {random_time_to_sleep}")
+                    should_start_movement_cycle = False
+>>>>>>> Stashed changes
                 if LOOK_AT_ME:
                    process1 = multiprocessing.Process(target=asyncio.run(Samuel.Move.async_move()))
                    process1.start()
                    process1.join()
                    
                 if HEAD_PAT:
+<<<<<<< Updated upstream
                    print("!!!!!!!! In move, head got patted")
                    Movement.body.move_down()
                    Movement.head_ud.move_up()
@@ -326,6 +336,22 @@ class Samuel:
                    process2.start()
                    process2.join()
                    time.sleep(random.uniform(0.5,2.5))
+=======
+                    print("!!!!!!!! In move, head got patted")
+                    Movement.body.move_down()
+                    Movement.head_ud.move_up()
+                    time.sleep(random.uniform(0.5,1.2))
+                    Movement.head_rl.move_right()                
+                    Movement.body.move_up(Movement.body.mid_value)
+                    Movement.head_ud.move_down()
+                    Movement.head_rl.move_left()
+                if not (HEAD_PAT or LOOK_AT_ME) and time.time() >= starting_time + random_time_to_sleep:
+                    print("!!! In move() if time has come to strech")
+                    process2 = multiprocessing.Process(target=asyncio.run(Samuel.Move.random_async_move()))
+                    process2.start()
+                    process2.join()
+                    should_start_movement_cycle = True
+>>>>>>> Stashed changes
     
     
 def main():
