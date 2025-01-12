@@ -3,20 +3,22 @@ import RPi.GPIO as GPIO
 import maestro
 import time
 import random
-import threading
 import signal
 from sys import exit
-import os
-import json
-import struct
 import asyncio
 import multiprocessing
+import face_recognition
+import cv2
+import numpy as np
+from picamera2 import Picamera2
+
 from Servo import Mouth, HeadUpDown, HeadLeftRight, Wings, Body
 
 from constants import Movement
 from anymatron_speak import Speak
 from anymatron_move import Move
 from global_state import Events
+from camera_face_tracking import FaceDetecion
 
 
 LED_PIN = 24 # board pin no. 12
@@ -142,7 +144,40 @@ class Samuel:
                 # ~ GlobalState.LOOK_AT_ME = False
                 Events.look_at_me_event.clear()
     
+
+    def load_camera():
+        print("in load_camera")
+        faceCascade = cv2.CascadeClassifier()
+        picam2 = Picamera2()
+        picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (1920, 1080)}))
+        picam2.start()
+        while True:
+            frame = picam2.capture_array()
+            # ret, img = cap.read()
+            # img = cv2.flip(img, -1)
+            # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            resized_frame = cv2.resize(frame, (0, 0), fx=(1/4), fy=(1/4))
+            flipped_frame = cv2.flip(resized_frame, 1)
+            gray_resized_frame = cv2.cvtColor(flipped_frame, cv2.COLOR_BGR2GRAY)
+            import ipdb; ipdb.set_trace()
+            faces = faceCascade.detectMultiScale(
+                gray_resized_frame,     
+                scaleFactor=1.2,
+                minNeighbors=5,     
+                minSize=(20, 20)
+            )
+            for (x,y,w,h) in faces:
+                cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+                roi_gray = gray_resized_frame[y:y+h, x:x+w]
+                roi_color = frame[y:y+h, x:x+w]
+            cv2.imshow('video',frame)
+            k = cv2.waitKey(30) & 0xff
+            if k == 27: # press 'ESC' to quit
+                break
+        cap.release()
+        cv2.destroyAllWindows()
     
+
 def main():
     # Assign handler function for the user termination option (cntl+x):
     signal.signal(signal.SIGINT, signal_handler)
@@ -172,6 +207,8 @@ def main():
         processes.append(look_at_me_process)
         movement_process = multiprocessing.Process(target=Move.move)
         processes.append(movement_process)
+        face_detection_process = multiprocessing.Process(target=FaceDetecion.face_detection_and_tracking)
+        processes.append(face_detection_process)
         # ~ samuel_wake_up_thread = threading.Thread(target=Samuel.wake_up, daemon=True)
         # ~ threads.append(samuel_wake_up_thread)
         # ~ samuel_speak_thread = threading.Thread(target=Samuel.Speak.speak, daemon=True)
@@ -192,3 +229,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

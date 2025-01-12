@@ -2,6 +2,7 @@ import random
 import time
 import multiprocessing
 import asyncio
+import threading
 
 from constants import Movement
 from utils import get_random_weighted_sleep_time
@@ -69,6 +70,9 @@ class Move:
         random_duo_combination = Move.get_random_duo_combination()
         exec(random_duo_combination[0])
         exec(random_duo_combination[1])
+
+    def resume_tracking_faces():
+        Events.resume_face_tracking_event.set()
             
     def move():
         # This process allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
@@ -94,6 +98,14 @@ class Move:
                 Movement.body.move_up(Movement.body.mid_value)
                 Movement.head_ud.move_down()
                 Movement.head_rl.move_left()
+            if Events.face_detected_event.is_set():
+                # Follow the face for some time, than it will get borring and stop following it and get back to moving randomly.
+                time.sleep(10)
+                print("boooooooooo")
+                Events.face_detected_event.clear()
+                # Take some break from tracking faces and move randomly:
+                timer = threading.Timer(interval=8.0, function=Move.resume_tracking_faces)
+                timer.start()
             if not (Events.head_pat_event.is_set() or Events.look_at_me_event.is_set()) and time.time() >= starting_time + random_time_to_sleep:
                 print(f"!!! In move() if time has come to strech\m GlobalState.")
                 process2 = multiprocessing.Process(target=asyncio.run(Move.random_async_move()))
