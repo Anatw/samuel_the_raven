@@ -1,0 +1,8 @@
+# .gitignore
+private_face_behaviors.py
+raven_sounds/
+Maestro/
+Face Recognition/
+maestro.py
+camera_face_tracking.py
+__pycache__/
