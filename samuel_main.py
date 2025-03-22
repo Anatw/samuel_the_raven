@@ -6,11 +6,13 @@ import threading
 import sys
 from os import environ
 
+from timer_window_for_programmer import show_timer_window
+
 from samuel_async import Samuel
 from Servo import Movement
 from animatron_move import Move
 from camera_face_tracking import FaceDetecion
-from timer_window_for_programmer import show_timer_window
+from speech_recognition import SpeechRecognition
 
 
 # Initiate the servo object. You can find the correct tty by running 'ls /dev/tty*' and
@@ -95,6 +97,10 @@ def main():
             args=(face_detection_instance,),
         )
         processes.append(face_detection_process)
+        speech_recognition_process = multiprocessing.Process(
+            target=SpeechRecognition.main, args=(move_instance,)
+        )
+        processes.append(speech_recognition_process)
 
         for thread in threads:
             thread.start()
