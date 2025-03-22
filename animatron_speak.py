@@ -13,6 +13,7 @@ from config import BlinkConfig
 
 
 audio_folder_path = "./raven_sounds/"
+SHARED_SPEAKING_LOCK = asyncio.Lock()
 
 
 class Speak:
@@ -25,7 +26,7 @@ class Speak:
     class SoundCategories:
         class HeadPat:
             name = "head_pat"
-            time_to_sleep = 1040  # When only the head_pat theread is available this should be changed to 1044
+            time_to_sleep = 1040
 
         class FaceDetectedKraa:
             name = "kraa_detect"
@@ -41,6 +42,9 @@ class Speak:
         class Talking:
             name = "talking"
 
+        class Name:
+            time_to_sleep = 1040
+
     @staticmethod
     def choose_random_sound_from_category(category):
         with Lock():
@@ -52,23 +56,17 @@ class Speak:
 
     async def async_speak(self, audio_track_to_play, time_to_sleep):
         """Coordinated speaking with head movement"""
-        async with self._speaking_lock:  # Ensure only one speech at a time
-            # if self.events.speaking_event.is_set():
-            #     print("Already speaking, please wait...")
-            #     return
+        async with SHARED_SPEAKING_LOCK:  # Ensure only one speech at a time
             self.events.speaking_event.set()
             self.blinker.change_blinking_time(
                 BlinkConfig.SPEAKING_FAST, BlinkConfig.SPEAKING_SLOW
             )
             try:
-                # self.events.speaking_event.set()
                 print(f"Starting to speak: {audio_track_to_play}")
                 head_task = asyncio.create_task(Move.move_head_rl())
                 speak_task = asyncio.create_task(
                     self.speak(audio_track_to_play, time_to_sleep)
                 )
-
-                # Wait for both tasks to complete
                 await asyncio.gather(head_task, speak_task)
             finally:
                 self.blinker.restore_blinking_time()
@@ -89,6 +87,12 @@ class Speak:
             await self.async_speak(
                 audio_track, self.SoundCategories.FaceDetectedKraa.time_to_sleep
             )
+
+    async def speak_name(self, name):
+        audio_track_to_play = self.choose_random_sound_from_category(category=name)
+        await self.async_speak(
+            audio_track_to_play, Speak.SoundCategories.Name.time_to_sleep
+        )
 
     async def speak(self, audio_track_to_play, time_to_sleep):
         """
