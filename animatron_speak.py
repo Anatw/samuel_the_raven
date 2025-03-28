@@ -7,7 +7,6 @@ from mutagen.mp3 import MP3  # For mp3 files metadata
 
 from Servo import Movement
 from global_state import Events
-from animatron_move import Move
 from multiprocessing import Lock
 from config import BlinkConfig
 
@@ -41,6 +40,9 @@ class Speak:
         class Talking:
             name = "talking"
 
+        class Name:
+            time_to_sleep = 1040
+
     @staticmethod
     def choose_random_sound_from_category(category):
         with Lock():
@@ -63,13 +65,14 @@ class Speak:
             try:
                 # self.events.speaking_event.set()
                 print(f"Starting to speak: {audio_track_to_play}")
-                head_task = asyncio.create_task(Move.move_head_rl())
+                # head_task = asyncio.create_task(Move.move_head_rl())
                 speak_task = asyncio.create_task(
                     self.speak(audio_track_to_play, time_to_sleep)
                 )
 
                 # Wait for both tasks to complete
-                await asyncio.gather(head_task, speak_task)
+                # await asyncio.gather(head_task, speak_task)
+                await asyncio.gather(speak_task)
             finally:
                 self.blinker.restore_blinking_time()
                 self.events.speaking_event.clear()
