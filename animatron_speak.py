@@ -2,8 +2,15 @@ import os
 import json
 import random
 import asyncio
-import pygame  # To play music
-from mutagen.mp3 import MP3  # For mp3 files metadata
+
+# import pygame  # To play music
+import sounddevice as sd  # replace pygame and see if it solved the competability problem with the added speech_recognition issue.
+import soundfile as sf
+
+# from mutagen.mp3 import MP3  # For mp3 files metadata
+import threading
+from time import sleep
+import subprocess
 
 from Servo import Movement
 from global_state import Events
@@ -95,7 +102,7 @@ class Speak:
 
     async def speak(self, audio_track_to_play, time_to_sleep):
         """
-        Play an mp3 music file.
+        Play a WAV file and animate the servo accordingly.
 
         Args:
             audio_track_to_play (str): The name of the sound track to be play.
@@ -116,47 +123,71 @@ class Speak:
                 os.path.join(audio_folder_path, "servo_ready_sound_rms_dict.json")
             ) as servo_ready_rms_dict_json:
                 rms_dict = json.load(servo_ready_rms_dict_json)
-                # Audio file setup:
-                audio_file_path = os.path.join(audio_folder_path, audio_track_to_play)
-                audio = MP3(audio_file_path)
-                audio_file_duration = audio.info.length
-                # print(f"now playing audio file {audio_track_to_play}\n")
-                print("audio_file_duration: ", audio_file_duration)
-                await asyncio.sleep(1)
-                pygame.mixer.init(
-                    frequency=rms_dict[audio_track_to_play]["sample_rate"]
-                )
-                pygame.mixer.music.load(audio_file_path)
-                pygame.mixer.music.play()
 
-                # Calculate timing
-                num_frames_in_track = len(rms_dict[audio_track_to_play]["0"])
-                frame_duration_for_pygame_to_wait = (
-                    audio_file_duration / num_frames_in_track
-                )
-                # Devide the length of the song to the ammount of frames, and than
-                # Choose a random rms_cluster from the available range for audio_track_to_play:
-                cluster_to_animate = random.randint(
-                    0, (len(rms_dict[audio_track_to_play].items()) - 2)
-                )
-                # Animate mouth:
-                for index, rms_values_for_servo in enumerate(
-                    rms_dict[audio_track_to_play][f"{cluster_to_animate}"]
-                ):
-                    if index == (num_frames_in_track - 1):
-                        print("\n\n")
+            audio_file_path = os.path.join(audio_folder_path, audio_track_to_play)
+            data, samplerate = sf.read(audio_file_path, dtype="float32")
+
+            # samplerate=48000
+            def _play_audio():
+                sd.default.device = None  # Use safe default
+                try:
+                    sd.play(data, samplerate=samplerate, device=(None, 2))
+                    sd.wait()
+                except Exception as e:
+                    print(f"! Audio playback failed: {e}")
+                    print("Attempting to reset audio system...")
+
+                    # Restart ALSA stack
+                    subprocess.run(["sudo", "alsactl", "init"], check=False)
+                    # Show who's using audio devices
+                    if os.path.exists("/dev/snd"):
+                        fuser_output = subprocess.run(
+                            ["sudo", "fuser", "-v", "/dev/snd/*"],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                        )
+                        print(f"🔍 fuser output:\n{fuser_output.stdout}")
+                    else:
+                        print("! /dev/snd/ not available — no audio devices detected.")
+
+                    # Give it a moment to recover
+                    sleep(1)
+
+                    # Retry playback once
+                    try:
+                        print("🔁 Retrying playback...")
+                        sd.play(data, samplerate=samplerate, device=(None, 2))
+                        sd.wait()
+                    except Exception as retry_err:
+                        print(f"❌ Retry failed: {retry_err}")
+
+            # Play audio in background thread (non-blocking)
+            threading.Thread(target=_play_audio, daemon=True).start()
+            # How many RMS values (animation steps)
+            num_frames_in_track = len(rms_dict[audio_track_to_play]["0"])
+
+            # Calculate time per frame
+            sound_duration = len(data) / samplerate
+            frame_duration = max(sound_duration / num_frames_in_track, 0.033)
+            cluster_to_animate = random.randint(
+                0, (len(rms_dict[audio_track_to_play].items()) - 2)
+            )
+            # Animate mouth:
+            previous = None
+            for index, rms_values_for_servo in enumerate(
+                rms_dict[audio_track_to_play][f"{cluster_to_animate}"]
+            ):
+                if index == (num_frames_in_track - 1):
+                    print("\n\n")
+                if rms_values_for_servo != previous:
                     if rms_values_for_servo == 1:
                         Movement.mouth.open(target_value=Movement.mouth.max_value)
                     else:
                         Movement.mouth.close(target_value=Movement.mouth.min_value)
-                    # sleep for as long as the frame play - ideal to double by 1040
-                    # pygame.time.wait(int(frame_duration_for_pygame_to_wait * time_to_sleep))
-                    await asyncio.sleep(
-                        frame_duration_for_pygame_to_wait * time_to_sleep / 1000
-                    )
+                    previous = rms_values_for_servo
+                await asyncio.sleep(frame_duration)
 
         except Exception as e:
             print(f"Error during speech: {e}")
             raise
-        finally:
-            pygame.quit()
