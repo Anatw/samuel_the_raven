@@ -22,11 +22,12 @@ audio_folder_path = "./raven_sounds/"
 
 
 class Speak:
-    def __init__(self, blinker=None):
+    def __init__(self, speech_queue, blinker=None):
         self._speaking_lock = asyncio.Lock()
         self._process_lock = Lock()
         self.events = Events()
         self.blinker = blinker
+        self.speech_queue = speech_queue
 
     class SoundCategories:
         class HeadPat:
@@ -87,18 +88,36 @@ class Speak:
         # speak_task = asyncio.create_task(Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=time_to_sleep))
         # await asyncio.gather(speak_task, move_head_task)
 
-    async def speak_kraa(self):
+    def speak_kraa(self):
         """Periodic kraa sounds during face detection"""
-        await asyncio.sleep(5)
-        # every once in a while, say something:
-        while Speak.events.face_detected_event.is_set():
-            await asyncio.sleep(random.uniform(6, 40))
-            audio_track = self.choose_random_sound_from_category(
-                self.SoundCategories.FaceDetectedKraa.name
-            )
-            await self.async_speak(
-                audio_track, self.SoundCategories.FaceDetectedKraa.time_to_sleep
-            )
+
+        # await asyncio.sleep(5)
+        # # every once in a while, say something:
+        # while Speak.events.face_detected_event.is_set():
+        #     await asyncio.sleep(random.uniform(6, 40))
+        #     audio_track = self.choose_random_sound_from_category(
+        #         self.SoundCategories.FaceDetectedKraa.name
+        #     )
+        #     await self.async_speak(
+        #         audio_track, self.SoundCategories.FaceDetectedKraa.time_to_sleep
+        #     )
+        def _background_kraa():
+            sleep(5)  # Initial delay
+            while Speak.events.face_detected_event.is_set():
+                sleep(random.uniform(6, 40))
+                audio_track = self.choose_random_sound_from_category(
+                    self.SoundCategories.FaceDetectedKraa.name
+                )
+
+                self.speech_queue.put(
+                    {
+                        "type": "speak",
+                        "track": audio_track,
+                        "sleep": self.SoundCategories.FaceDetectedKraa.time_to_sleep,
+                    }
+                )
+
+        threading.Thread(target=_background_kraa, daemon=True).start()
 
     async def speak(self, audio_track_to_play, time_to_sleep):
         """
@@ -127,12 +146,15 @@ class Speak:
             audio_file_path = os.path.join(audio_folder_path, audio_track_to_play)
             data, samplerate = sf.read(audio_file_path, dtype="float32")
 
-            # samplerate=48000
             def _play_audio():
                 sd.default.device = None  # Use safe default
                 try:
-                    sd.play(data, samplerate=samplerate, device=(None, 2))
+                    sd.play(
+                        data, samplerate=samplerate, device=(None, 2), blocksize=4048
+                    )
                     sd.wait()
+                    print(f"✅ Finished playing: {audio_track_to_play}")
+
                 except Exception as e:
                     print(f"! Audio playback failed: {e}")
                     print("Attempting to reset audio system...")
@@ -157,7 +179,12 @@ class Speak:
                     # Retry playback once
                     try:
                         print("🔁 Retrying playback...")
-                        sd.play(data, samplerate=samplerate, device=(None, 2))
+                        sd.play(
+                            data,
+                            samplerate=samplerate,
+                            device=(None, 2),
+                            blocksize=4096,
+                        )
                         sd.wait()
                     except Exception as retry_err:
                         print(f"❌ Retry failed: {retry_err}")
