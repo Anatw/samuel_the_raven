@@ -12,7 +12,8 @@ from samuel_async import Samuel
 from Servo import Movement
 from animatron_move import Move
 from camera_face_tracking import FaceDetecion
-from speech_recognition import SpeechRecognition
+
+# from speech_recognition import SpeechRecognition
 from timer_window_for_programmer import show_timer_window
 
 
@@ -95,7 +96,7 @@ def main():
 
     move_instance = Move()
     face_detection_instance = FaceDetecion(samuel=samuel)
-    speech_instance = SpeechRecognition(sample_rate=48000)
+    # speech_instance = SpeechRecognition(sample_rate=48000)
 
     try:
         threads = []
@@ -128,11 +129,11 @@ def main():
             args=(face_detection_instance,),
         )
         processes.append(face_detection_process)
-        speech_recognition_process = multiprocessing.Process(
-            target=SpeechRecognition.recognize_words_from_microphone,
-            args=(speech_instance,),
-        )
-        processes.append(speech_recognition_process)
+        # speech_recognition_process = multiprocessing.Process(
+        #     target=SpeechRecognition.recognize_words_from_microphone,
+        #     args=(speech_instance,),
+        # )
+        # processes.append(speech_recognition_process)
 
         for thread in threads:
             thread.start()
