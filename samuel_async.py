@@ -22,7 +22,7 @@ class Samuel:
         self.speaker = Speak(blinker=self.blinker, speech_queue=speech_queue)
         self.events = Events()
         self.head_patted_time = time.time()
-        self.time_to_look_at_me = 180
+        self.time_to_look_at_me = 10
         self.audio_lock = threading.Lock()  # lock for audio playback
         self.speech_queue = speech_queue
 

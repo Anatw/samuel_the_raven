@@ -16,9 +16,11 @@ from Servo import Movement
 from global_state import Events
 from multiprocessing import Lock
 from config import BlinkConfig
+from animatron_audio_devices import get_audio_device_indices
 
 
 audio_folder_path = "./raven_sounds/"
+SPEAKER_INDEX = get_audio_device_indices()["speaker_index"]
 
 
 class Speak:
@@ -147,10 +149,14 @@ class Speak:
             data, samplerate = sf.read(audio_file_path, dtype="float32")
 
             def _play_audio():
-                sd.default.device = None  # Use safe default
+                # sd.default.device = None  # Use safe default
                 try:
+                    print(f"🔊 Playing with device {SPEAKER_INDEX}")
                     sd.play(
-                        data, samplerate=samplerate, device=(None, 2), blocksize=4048
+                        data,
+                        samplerate=samplerate,
+                        device=(None, SPEAKER_INDEX),
+                        blocksize=4048,
                     )
                     sd.wait()
                     print(f"✅ Finished playing: {audio_track_to_play}")
@@ -182,7 +188,7 @@ class Speak:
                         sd.play(
                             data,
                             samplerate=samplerate,
-                            device=(None, 2),
+                            device=(None, SPEAKER_INDEX),
                             blocksize=4096,
                         )
                         sd.wait()

@@ -6,10 +6,15 @@ import json
 import re
 import os
 from rapidfuzz import fuzz
+
 from private_words_behavior import NAME_CORRECTIONS_REGEX
+from animatron_audio_devices import get_audio_device_indices
+
 
 MODEL_PATH = "models/vosk-model-small-en-us-0.15"
 FUZZY_MATCHES = "speech_variants.json"
+# The index of the microphone device to use. You can find the index by running:  arecord -l
+MIC_INDEX = get_audio_device_indices()["mic_index"]
 
 
 class SpeechRecognition:
@@ -63,10 +68,10 @@ class SpeechRecognition:
     def recognize_words_from_microphone(self):
         with sd.RawInputStream(
             samplerate=self.sample_rate,
-            # blocksize=8000,
+            blocksize=8000,
             dtype="int16",
-            # channels=1,
-            device=3,
+            channels=1,
+            device=MIC_INDEX,
             callback=self.audio_callback,
         ):
             recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
