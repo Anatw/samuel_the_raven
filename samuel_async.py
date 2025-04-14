@@ -2,7 +2,6 @@
 import RPi.GPIO as GPIO
 import time
 import random
-import asyncio
 
 from animatron_speak import Speak
 from global_state import Events
@@ -17,14 +16,19 @@ TIME_TO_KRAA = None
 
 
 class Samuel:
-    def __init__(self):
+    def __init__(self, speech_queue):
         self.gpio_setup()
         self.blinker = self.Blink()
-        self.speaker = Speak(blinker=self.blinker)
+        self.speaker = Speak(blinker=self.blinker, speech_queue=speech_queue)
         self.events = Events()
         self.head_patted_time = time.time()
-        self.time_to_look_at_me = 180
+        self.time_to_look_at_me = 10
         self.audio_lock = threading.Lock()  # lock for audio playback
+        self.speech_queue = speech_queue
+
+    @staticmethod
+    def handle_touch(channel):
+        print("Mmmmmm this feels nice")
 
     @staticmethod
     def gpio_setup():
@@ -33,7 +37,13 @@ class Samuel:
         GPIO.output(
             LED_PIN, GPIO.HIGH
         )  # Turn the led pin to high (this will turn the led 'off')
-        GPIO.setup(TOUCH1_PIN, GPIO.IN)  # Set the touch sensor pin as 'in'
+        # GPIO.setup(TOUCH1_PIN, GPIO.IN)  # Set the touch sensor pin as 'in'
+        GPIO.setup(TOUCH1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+        # Register touch detection with debounce
+        GPIO.add_event_detect(
+            TOUCH1_PIN, GPIO.RISING, callback=Samuel.handle_touch, bouncetime=300
+        )
 
     class Blink:
         _instance = None
@@ -77,16 +87,27 @@ class Samuel:
                     self.events.blink_event.clear()
 
     def play_audio(self, audio_track, time_to_sleep):
-        with self.audio_lock:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                self.speaker.async_speak(audio_track, time_to_sleep)
-            )
+        # with self.audio_lock:
+        #     loop = asyncio.new_event_loop()
+        #     asyncio.set_event_loop(loop)
+        #     loop.run_until_complete(
+        #         self.speaker.async_speak(audio_track, time_to_sleep)
+        #     )
+        self.speech_queue.put(
+            {"type": "speak", "track": audio_track, "time_to_sleep": time_to_sleep}
+        )
 
     def head_pat(self):
+        def _is_touch_confirmed(pin, duration=0.1, checks=5):
+            confirmed = 0
+            for _ in range(checks):
+                if GPIO.input(pin):
+                    confirmed += 1
+                time.sleep(duration / checks)
+            return confirmed == checks
+
         while True:
-            if GPIO.input(TOUCH1_PIN):
+            if _is_touch_confirmed(TOUCH1_PIN):
                 self.events.head_pat_event.set()  # For use inside animatron_move
                 audio_track_to_play = Speak.choose_random_sound_from_category(
                     category=Speak.SoundCategories.HeadPat.name
@@ -94,10 +115,15 @@ class Samuel:
                 self.blinker.change_blinking_time(
                     BlinkConfig.PATTED_FAST, BlinkConfig.PATTED_SLOW
                 )
-                print("Mmmmmm this feels nice!")
-                self.play_audio(
-                    audio_track_to_play, Speak.SoundCategories.HeadPat.time_to_sleep
+
+                self.speaker.speech_queue.put(
+                    {
+                        "type": "speak",
+                        "track": audio_track_to_play,
+                        "sleep": Speak.SoundCategories.HeadPat.time_to_sleep,
+                    }
                 )
+
                 self.events.head_pat_event.clear()
                 self.blinker.restore_blinking_time()
                 self.head_patted_time = time.time()
@@ -112,12 +138,19 @@ class Samuel:
                     fast_blink=BlinkConfig.ATTENTION_FAST,
                     slow_blink=BlinkConfig.ATTENTION_SLOW,
                 )
+
                 audio_track_to_play = Speak.choose_random_sound_from_category(
                     category=Speak.SoundCategories.LookAtMe.name
                 )
-                self.play_audio(
-                    audio_track_to_play, Speak.SoundCategories.LookAtMe.time_to_sleep
+
+                self.speaker.speech_queue.put(
+                    {
+                        "type": "speak",
+                        "track": audio_track_to_play,
+                        "sleep": Speak.SoundCategories.LookAtMe.time_to_sleep,
+                    }
                 )
+
                 self.head_patted_time = time.time()
                 self.blinker.restore_blinking_time()
                 self.events.look_at_me_event.clear()
