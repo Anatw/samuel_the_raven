@@ -66,13 +66,13 @@ These sequences are grouped by different sensitivity levels, producing a range o
 ```python
 {
   "head_pat5.mp3": {
-    10: [0, 0, 1, 1, ..., 0],
-    70: [0, 1, 1, 1, ..., 0],
-    150: [...],
-    ...
+    "0": [0, 0, 1, 1, ..., 0],
+    "1": [0, 1, 1, 1, ..., 0],
+    "2": [...],
   }
 }
 ```
+
 ---
 
 ### Integration in Samuel
