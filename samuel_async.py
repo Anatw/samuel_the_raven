@@ -1,8 +1,6 @@
-# import gpiozero
-import RPi.GPIO as GPIO
+from gpiozero import LED
 import time
 import random
-import asyncio
 
 from animatron_speak import Speak
 from global_state import Events
@@ -11,34 +9,45 @@ import threading
 
 
 LED_PIN = 24  # board pin no. 12
-MOTION_PIN = 17  # board pin no. 11
-TOUCH1_PIN = 27  # board pin no. 13
 TIME_TO_KRAA = None
 
 
 class Samuel:
-    def __init__(self):
-        self.gpio_setup()
-        self.blinker = self.Blink()
+    def __init__(self, touch_sensor, audio_queue):
+        self.led = LED(LED_PIN)
+        self.blinker = self.Blink(led=self.led)
         self.speaker = Speak(blinker=self.blinker)
         self.events = Events()
         self.head_patted_time = time.time()
         self.time_to_look_at_me = 180
         self.audio_lock = threading.Lock()  # lock for audio playback
+        self.touch_sensor = touch_sensor
+        self.audio_queue = audio_queue
+        self.gpio_setup(led=self.led)
+
+    def cleanup(self):
+        self.led.off()
+        self.led.close()
+        self.touch_sensor.bus.close()
 
     @staticmethod
-    def gpio_setup():
-        GPIO.setmode(GPIO.BCM)  # Generally set the mode for the GPIO pins
-        GPIO.setup(LED_PIN, GPIO.OUT)
-        GPIO.output(
-            LED_PIN, GPIO.HIGH
-        )  # Turn the led pin to high (this will turn the led 'off')
-        GPIO.setup(TOUCH1_PIN, GPIO.IN)  # Set the touch sensor pin as 'in'
+    def gpio_setup(led):
+        led.on()
 
     class Blink:
         _instance = None
+        _initialized = False
 
-        def __new__(cls):
+        def __init__(self, led):
+            if not self._initialized:
+                self.lock = threading.Lock()
+                self.config = BlinkConfig()
+                self.events = Events()
+                self._initialized = True
+            if led is not None:
+                self.led = led
+
+        def __new__(cls, *args, **kwargs):
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance.lock = threading.Lock()
@@ -63,10 +72,11 @@ class Samuel:
             self.events.blink_event.set()
 
         def blink(self):
-            while True:
-                GPIO.output(LED_PIN, GPIO.LOW)
+            while not self.events.shutdown_event.is_set():
+                # GPIO.output(LED_PIN, GPIO.LOW)
+                self.led.off()
                 time.sleep(BlinkConfig.BLINK_DURATION)
-                GPIO.output(LED_PIN, GPIO.HIGH)
+                self.led.on()
 
                 with self.lock:
                     current_fast = self.config.fast
@@ -76,17 +86,23 @@ class Samuel:
                 if self.events.blink_event.wait(timeout=time_to_wait_between_blinks):
                     self.events.blink_event.clear()
 
-    def play_audio(self, audio_track, time_to_sleep):
-        with self.audio_lock:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                self.speaker.async_speak(audio_track, time_to_sleep)
-            )
+    # def play_audio(self, audio_track, time_to_sleep):
+    #     with self.audio_lock:
+    #         loop = asyncio.new_event_loop()
+    #         asyncio.set_event_loop(loop)
+    #         loop.run_until_complete(
+    #             self.speaker.async_speak(audio_track, time_to_sleep)
+    #         )
 
     def head_pat(self):
-        while True:
-            if GPIO.input(TOUCH1_PIN):
+        last_sound_time = 0.0
+        min_interval = 3.0  # seconds before allowing the next pat sound
+        while not self.events.shutdown_event.is_set():
+            res = self.touch_sensor.poll()
+            now = time.time()
+            # Only fire on a True transition AND if enough time has passed
+            if res is True and (now - last_sound_time) >= min_interval:
+                last_sound_time = now
                 self.events.head_pat_event.set()  # For use inside animatron_move
                 audio_track_to_play = Speak.choose_random_sound_from_category(
                     category=Speak.SoundCategories.HeadPat.name
@@ -95,15 +111,21 @@ class Samuel:
                     BlinkConfig.PATTED_FAST, BlinkConfig.PATTED_SLOW
                 )
                 print("Mmmmmm this feels nice!")
-                self.play_audio(
-                    audio_track_to_play, Speak.SoundCategories.HeadPat.time_to_sleep
+                self.audio_queue.put_nowait(
+                    (
+                        Speak.SoundCategories.HeadPat.queue_priority,
+                        audio_track_to_play,
+                        Speak.DEFAULT_GAP,
+                    )
                 )
+                # self.async_speak(audio_track_to_play, time_to_sleep=1040)
                 self.events.head_pat_event.clear()
                 self.blinker.restore_blinking_time()
                 self.head_patted_time = time.time()
+            time.sleep(self.touch_sensor.poll_int)
 
     def look_at_me(self):
-        while True:
+        while not self.events.shutdown_event.is_set():
             if (
                 time.time() - self.head_patted_time
             ) > self.time_to_look_at_me and not self.events.speaking_event.is_set():
@@ -115,9 +137,15 @@ class Samuel:
                 audio_track_to_play = Speak.choose_random_sound_from_category(
                     category=Speak.SoundCategories.LookAtMe.name
                 )
-                self.play_audio(
-                    audio_track_to_play, Speak.SoundCategories.LookAtMe.time_to_sleep
+                print(f"[DEBUG] Enqueuing audio track: {audio_track_to_play}")
+                self.audio_queue.put_nowait(
+                    (
+                        Speak.SoundCategories.LookAtMe.queue_priority,
+                        audio_track_to_play,
+                        Speak.DEFAULT_GAP,
+                    )
                 )
                 self.head_patted_time = time.time()
                 self.blinker.restore_blinking_time()
                 self.events.look_at_me_event.clear()
+            time.sleep(0.1)

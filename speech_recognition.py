@@ -72,7 +72,7 @@ class SpeechRecognition:
             recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
             print("Hello! I'm listening")
 
-            while True:
+            while not self.events.shutdown_event.is_set():
                 data = self.q.get()
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
