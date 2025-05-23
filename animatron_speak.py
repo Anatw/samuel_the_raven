@@ -1,5 +1,6 @@
 import os
 import json
+import queue
 import random
 import asyncio
 
@@ -16,12 +17,12 @@ from Servo import Movement
 from global_state import Events
 from multiprocessing import Lock
 from config import BlinkConfig
-
-
-audio_folder_path = "./raven_sounds/"
+from constants import audio_folder_path
 
 
 class Speak:
+    DEFAULT_GAP = 0.5
+
     def __init__(self, blinker=None):
         self._speaking_lock = asyncio.Lock()
         self._process_lock = Lock()
@@ -31,7 +32,8 @@ class Speak:
     class SoundCategories:
         class HeadPat:
             name = "head_pat"
-            time_to_sleep = 1040  # When only the head_pat theread is available this should be changed to 1044
+            time_to_sleep = 1040
+            queue_priority = 5
 
         class FaceDetectedKraa:
             name = "kraa_detect"
@@ -39,10 +41,12 @@ class Speak:
 
         class CallFaceBackKraa:
             name = "kraa"
+            queue_priority = 5
 
         class LookAtMe:
             name = "look_at_me"
             time_to_sleep = 740
+            queue_priority = 5
 
         class Talking:
             name = "talking"
@@ -58,6 +62,28 @@ class Speak:
             ) as servo_sound_names_json:
                 servo_sound_names = json.load(servo_sound_names_json)
                 return random.choice(servo_sound_names[category])
+
+    async def speak_worker_loop(self, audio_queue, shutdown_event):
+        """
+        Accept queue items in the following format:
+        queue(priority, filename, gap)
+        Lowest numeric priority plays first.
+        """
+        while not shutdown_event.is_set():
+            try:
+                priority, filename, gap = audio_queue.get(timeout=0.2)
+            except queue.Empty:
+                await asyncio.sleep(0.05)
+                continue
+            # if isinstance(item, tuple):
+            #     filename, gap = item
+            # else:
+            #     filename, gap = item, default_gap
+
+            print(
+                f"[worker] Got item from queue: {filename} (priority {priority}), sleeping after: {gap}"
+            )
+            await self.async_speak(filename, gap)
 
     async def async_speak(self, audio_track_to_play, time_to_sleep):
         """Coordinated speaking with head movement"""
@@ -76,16 +102,10 @@ class Speak:
                 speak_task = asyncio.create_task(
                     self.speak(audio_track_to_play, time_to_sleep)
                 )
-
-                # Wait for both tasks to complete
-                # await asyncio.gather(head_task, speak_task)
                 await asyncio.gather(speak_task)
             finally:
                 self.blinker.restore_blinking_time()
                 self.events.speaking_event.clear()
-        # move_head_task = Move.move_head_rl()
-        # speak_task = asyncio.create_task(Speak.speak(audio_track_to_play=audio_track_to_play, time_to_sleep=time_to_sleep))
-        # await asyncio.gather(speak_task, move_head_task)
 
     async def speak_kraa(self):
         """Periodic kraa sounds during face detection"""
@@ -126,13 +146,19 @@ class Speak:
 
             audio_file_path = os.path.join(audio_folder_path, audio_track_to_play)
             data, samplerate = sf.read(audio_file_path, dtype="float32")
+            channels = data.shape[1] if data.ndim > 1 else 1
 
             # samplerate=48000
             def _play_audio():
-                sd.default.device = None  # Use safe default
+                nonlocal data, samplerate, channels
                 try:
-                    sd.play(data, samplerate=samplerate, device=(None, 2))
-                    sd.wait()
+                    with sd.OutputStream(
+                        samplerate=samplerate,
+                        channels=channels,
+                        blocksize=0,
+                        latency="low",
+                    ) as stream:
+                        stream.write(data)
                 except Exception as e:
                     print(f"! Audio playback failed: {e}")
                     print("Attempting to reset audio system...")
@@ -157,8 +183,13 @@ class Speak:
                     # Retry playback once
                     try:
                         print("🔁 Retrying playback...")
-                        sd.play(data, samplerate=samplerate, device=(None, 2))
-                        sd.wait()
+                        with sd.OutputStream(
+                            samplerate=samplerate,
+                            channels=channels,
+                            blocksize=1024,  # 4096
+                            latency="low",
+                        ) as stream:
+                            stream.write(data)
                     except Exception as retry_err:
                         print(f"❌ Retry failed: {retry_err}")
 
@@ -169,11 +200,13 @@ class Speak:
 
             # Calculate time per frame
             sound_duration = len(data) / samplerate
-            frame_duration = max(sound_duration / num_frames_in_track, 0.033)
+            # frame_duration = max(sound_duration / num_frames_in_track, 0.033)
+            frame_duration = sound_duration / num_frames_in_track
+            print(f"frame_duration: {frame_duration}")
             cluster_to_animate = random.randint(
                 0, (len(rms_dict[audio_track_to_play].items()) - 2)
             )
-            # Animate mouth:
+            # Animate beak:
             previous = None
             for index, rms_values_for_servo in enumerate(
                 rms_dict[audio_track_to_play][f"{cluster_to_animate}"]
