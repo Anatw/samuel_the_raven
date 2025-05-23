@@ -17,7 +17,7 @@ class SpeechRecognition:
         self.model_path = model_path
         self.sample_rate = sample_rate
         self.threshold = threshold
-        self.q = queue.Queue()  # Autio stream setup
+        self.q = queue.Queue()  # Audio stream setup
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Vosk model not found at: {model_path}")
         self.model = vosk.Model(model_path)
@@ -72,7 +72,7 @@ class SpeechRecognition:
             recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
             print("Hello! I'm listening")
 
-            while True:
+            while not self.events.shutdown_event.is_set():
                 data = self.q.get()
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
@@ -81,7 +81,7 @@ class SpeechRecognition:
                     if not raw_text:
                         continue
 
-                    print(f"\n📝 Recognized: '{raw_text}'")
+                    print(f"\nRecognized: '{raw_text}'")
 
                     regex_matches = self.match_targets_with_regex(text=raw_text)
                     fuzzy_matches = self.match_from_trained_variants(text=raw_text)
@@ -91,7 +91,7 @@ class SpeechRecognition:
                     )
 
                     if matched_words:
-                        print(f"✅ Matched: {matched_words}")
+                        print(f"Matched: {matched_words}")
                         for word, details in fuzzy_matches.items():
                             print(
                                 f"   • Fuzzy: '{details['match']}' ≈ '{details['variant']}' → '{word}' (score: {details['score']})"
