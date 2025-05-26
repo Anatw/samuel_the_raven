@@ -13,6 +13,7 @@ class Events:
             cls._instance.face_detected_event = Event()
             cls._instance.resume_face_tracking_event = Event()
             cls._instance.blink_event = Event()
+            cls._instance.shutdown_event = Event()
         return cls._instance
 
     # Type hints for IDE support
@@ -22,3 +23,4 @@ class Events:
     face_detected_event: Event
     resume_face_tracking_event: Event
     blink_event: Event
+    shutdown_event: Event
