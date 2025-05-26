@@ -1,8 +1,11 @@
-import RPi.GPIO as GPIO
+import asyncio
+import heapq
+from random import choices, uniform
 import signal
 import maestro
 import multiprocessing
 import threading
+import queue
 import sys
 from os import environ
 
@@ -10,101 +13,186 @@ from samuel_async import Samuel
 from Servo import Movement
 from animatron_move import Move
 from camera_face_tracking import FaceDetecion
+from touch_sensor import MPR121TouchSensor
+from animatron_speak import Speak
+from config import BlinkConfig
+
+# from speech_recognition import SpeechRecognition
 from timer_window_for_programmer import show_timer_window
 
+samuel = None
+maestro_controller = None
+audio_queue = None
+face_queue = None
+shutdown_in_progress = False
 
-# Initiate the servo object. You can find the correct tty by running 'ls /dev/tty*' and
-# checking for new ttys before and after connecting the Pololu Maestro using USB.
-maestro_controller = maestro.Controller(ttyStr="/dev/ttyACM0")
+
+def run_timer_window_on_pi(threads):
+    # Check if running directly on the Raspberry Pi (not via SSH)
+    if "SSH_CONNECTION" in environ:
+        environ.pop("DISPLAY", None)
+        environ["QT_QPA_PLATFORM"] = "offscreen"
+        environ["LIBGL_ALWAYS_INDIRECT"] = "1"
+    else:
+        timer_thread = threading.Thread(target=show_timer_window, daemon=True)
+        threads.append(timer_thread)
 
 
-def signal_handler():
+def signal_handler(signum, frame):
     # This function is meant to handle exit by the user (ctrl+x).
-    print("Caught termination signal. Cleaning up...")
-    terminate_all()
-    GPIO.cleanup()
-    sys.exit(0)
+    samuel.events.shutdown_event.set()
+    if shutdown_in_progress:
+        # If they really hammer Ctrl-C again, let the default handler kill us
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        return
 
 
 def terminate_all():
-    # Ensure all threads and processes are stopped and resources are cleaned up.
-    global threads, processes, maestro_controller
+    # Ensure all threads are stopped and resources are cleaned up.
+    global threads, processes, maestro_controller, face_queue
+    print("Treminating, please don't touch the keyboard ot shut down the program.")
 
-    # Terminate threads
-    for thread in threads:
-        if thread.is_alive():
-            thread.join(timeout=1)
+    if samuel:  # only signal shutdown if Samuel was actually created
+        samuel.events.shutdown_event.set()
 
-    # Terminate processes
-    for process in processes:
-        if process.is_alive():
-            process.terminate()
-            process.join()
+    if threads:
+        for thread in threads:
+            if not thread.daemon and thread.is_alive():
+                thread.join(timeout=1)
 
-    # Close the maestro controller
-    maestro_controller.close()
+    if face_queue:
+        face_queue.close()
+        face_queue.join_thread()
+
+    if maestro_controller:
+        maestro_controller.close()
 
     print("All threads, processes, and resources have been cleaned up.")
 
 
+def face_event_listener(face_queue, audio_queue, samuel):
+    """
+    Pull names from face_queue, pick repeats, and enqueue filenames
+    into audio_queue for playback.
+    """
+
+    def _flush_below(priority_queue: queue.PriorityQueue, min_priority: int) -> None:
+        """
+        Remove any queued items whose priority >= min_priority
+        and rebuild the heap in-place.
+        """
+        with priority_queue.mutex:
+            priority_queue.queue[:] = [
+                item for item in priority_queue.queue if item[0] < min_priority
+            ]
+            heapq.heapify(priority_queue.queue)  # restore heap property
+
+    while not samuel.events.shutdown_event.is_set():
+        try:
+            name = face_queue.get(timeout=0.2)  # blocks
+        except (EOFError, OSError):  # main has closed the queue—time to exit
+            break
+        except queue.Empty:  # timeout: loop back and check shutdown_event
+            continue
+
+        print(f"I see you, {name}!")
+        samuel.events.face_detected_event.set()
+
+        number_of_repeats = [1, 2, 3]
+        weights_for_repeats = [0.55, 0.30, 0.15]
+        reps = choices(number_of_repeats, weights=weights_for_repeats, k=1)[0]
+        print(f"Repeating name {reps} time(s)")
+
+        # blink faster while speaking
+        samuel.blinker.change_blinking_time(
+            BlinkConfig.ATTENTION_FAST, BlinkConfig.ATTENTION_SLOW
+        )
+
+        track = Speak.choose_random_sound_from_category(category=name)
+        _flush_below(audio_queue, 1)
+        for _ in range(reps):
+            audio_queue.put_nowait((0, track, uniform(0.3, 2.2)))
+
+        samuel.blinker.restore_blinking_time()
+
+
 def main():
-    global threads, processes
-    samuel = Samuel()
-    # Assign handler function for the user termination option (cntl+x):
-    signal.signal(signal.SIGINT, signal_handler)
+    global threads, samuel, audio_queue, maestro_controller, face_queue
+
+    # Initiate the servo object. You can find the correct tty by running 'ls /dev/tty*' and
+    # checking for new ttys before and after connecting the Pololu Maestro using USB.
+    maestro_controller = maestro.Controller(ttyStr="/dev/ttyACM0")
+    touch_sensor = MPR121TouchSensor(
+        i2c_bus=1,
+        address=0x5A,
+        electrode=11,
+        touch_thresh=12,
+        release_thresh=6,
+        dt=1,
+        dr=3,
+        touch_conf=4,
+        release_conf=5,
+        poll_interval=0.1,
+    )
+    audio_queue = queue.PriorityQueue()
+    samuel = Samuel(touch_sensor=touch_sensor, audio_queue=audio_queue)
+
     # Set mouth movements to be faster:
-    maestro_controller.setSpeed(chan=Movement.mouth.pin_number, speed=100)
-    maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=180)
+    maestro_controller.setSpeed(chan=Movement.mouth.pin_number, speed=150)  # 100
+    maestro_controller.setAccel(chan=Movement.mouth.pin_number, accel=180)  # 180
     # Faster wing movement:
-    maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=20)
+    maestro_controller.setSpeed(chan=Movement.wings.pin_number, speed=30)
     maestro_controller.setAccel(chan=Movement.wings.pin_number, accel=120)
     # Set body speed and acceleration movement:
     maestro_controller.setSpeed(chan=Movement.body.pin_number, speed=4)
     maestro_controller.setAccel(chan=Movement.body.pin_number, accel=10)
     # Set head speed and acceleration movement:
-    maestro_controller.setSpeed(chan=Movement.head_ud.pin_number, speed=80)
-    maestro_controller.setAccel(chan=Movement.head_ud.pin_number, accel=5)
-    maestro_controller.setSpeed(chan=Movement.head_rl.pin_number, speed=80)
-    maestro_controller.setAccel(chan=Movement.head_rl.pin_number, accel=5)
-    move_instance = Move()
-    face_detection_instance = FaceDetecion(samuel=samuel)
+    maestro_controller.setSpeed(chan=Movement.head_ud.pin_number, speed=120)
+    maestro_controller.setAccel(chan=Movement.head_ud.pin_number, accel=8)
+    maestro_controller.setSpeed(chan=Movement.head_rl.pin_number, speed=120)
+    maestro_controller.setAccel(chan=Movement.head_rl.pin_number, accel=8)
+    # speech_instance = SpeechRecognition(sample_rate=48000)
+    face_queue = multiprocessing.Queue()
+    face_detection_instance = FaceDetecion(samuel=samuel, face_queue=face_queue)
     try:
         threads = []
-        processes = []
-
-        # Check if running directly on the Raspberry Pi (not via SSH)
-        if "SSH_CONNECTION" not in environ:
-            timer_thread = threading.Thread(target=show_timer_window, daemon=True)
-            threads.append(timer_thread)
+        run_timer_window_on_pi(threads)
 
         # Use threads for I/O-bound tasks
-        blink_thread = threading.Thread(target=samuel.blinker.blink, daemon=True)
-        threads.append(blink_thread)
-        head_pat_thread = threading.Thread(target=samuel.head_pat, daemon=True)
-        threads.append(head_pat_thread)
-        look_at_me_thread = threading.Thread(target=samuel.look_at_me, daemon=True)
-        threads.append(look_at_me_thread)
-
-        # Use processes for CPU-bound tasks
-        movement_process = multiprocessing.Process(
-            target=Move.move, args=(move_instance,)
-        )
-        processes.append(movement_process)
-        face_detection_process = multiprocessing.Process(
-            target=FaceDetecion.face_detection_and_tracking,
-            args=(face_detection_instance,),
-        )
-        processes.append(face_detection_process)
+        threads += [
+            threading.Thread(target=samuel.blinker.blink, daemon=True),
+            threading.Thread(target=samuel.head_pat, daemon=True),
+            threading.Thread(target=samuel.look_at_me, daemon=True),
+            # threading.Thread(
+            #     target=sounddevice_worker,
+            #     args=(audio_queue, audio_folder_path, samuel.events.shutdown_event),
+            #     daemon=True
+            # ),
+            threading.Thread(
+                target=lambda: asyncio.run(
+                    samuel.speaker.speak_worker_loop(
+                        audio_queue, samuel.events.shutdown_event
+                    )
+                ),
+                daemon=True,
+            ),
+            threading.Thread(
+                target=face_event_listener,
+                args=(face_queue, audio_queue, samuel),
+                daemon=False,  # joined later, after closing the queue cleanly
+            ),
+            threading.Thread(
+                target=face_detection_instance.face_detection_and_tracking, daemon=True
+            ),
+            threading.Thread(target=Move(samuel.events).move, daemon=True),
+        ]
 
         for thread in threads:
             thread.start()
-        for process in processes:
-            process.start()
 
-        for thread in threads:
-            thread.join()
-        for process in processes:
-            process.join()
+        samuel.events.shutdown_event.wait()
+        terminate_all()
+        sys.exit(0)
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -112,4 +200,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Assign handler function for the user termination option (cntl+x):
+    signal.signal(signal.SIGINT, signal_handler)
+    multiprocessing.set_start_method("spawn", force=True)
+    try:
+        main()
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        terminate_all()
+        sys.exit(1)

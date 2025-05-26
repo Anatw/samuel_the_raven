@@ -55,9 +55,13 @@ class Servo:
         self.mid_value = int((min_value + max_value) / 2)
 
     def get_position(self):
+        # print(f"In get_position, Sending command: {command}")
+        # print(f"In get_position, Received data: {data}")
         return serial_manager.get_position(self.pin_number)
 
     def set_position(self, target_value):
+        # print(f"In set_position, Sending command: {command}")
+        # print(f"In set_position, Received data: {data}")
         serial_manager.set_position(self.pin_number, target_value)
 
     def generate_random_value(self, destiny):

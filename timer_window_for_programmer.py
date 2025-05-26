@@ -22,5 +22,6 @@ class TimerWindow:
 
 
 def show_timer_window():
+    print("[debug] Timer window launched!")
     timer_window = TimerWindow()
     timer_window.start()
