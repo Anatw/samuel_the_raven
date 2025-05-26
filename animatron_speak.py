@@ -4,11 +4,9 @@ import queue
 import random
 import asyncio
 
-# import pygame  # To play music
-import sounddevice as sd  # replace pygame and see if it solved the competability problem with the added speech_recognition issue.
+import sounddevice as sd  # To play audio
 import soundfile as sf
 
-# from mutagen.mp3 import MP3  # For mp3 files metadata
 import threading
 from time import sleep
 import subprocess
@@ -66,8 +64,8 @@ class Speak:
     async def speak_worker_loop(self, audio_queue, shutdown_event):
         """
         Accept queue items in the following format:
-        queue(priority, filename, gap)
-        Lowest numeric priority plays first.
+         - queue(priority, filename, gap)
+         - Lowest numeric priority plays first.
         """
         while not shutdown_event.is_set():
             try:
@@ -75,10 +73,6 @@ class Speak:
             except queue.Empty:
                 await asyncio.sleep(0.05)
                 continue
-            # if isinstance(item, tuple):
-            #     filename, gap = item
-            # else:
-            #     filename, gap = item, default_gap
 
             print(
                 f"[worker] Got item from queue: {filename} (priority {priority}), sleeping after: {gap}"
@@ -88,17 +82,12 @@ class Speak:
     async def async_speak(self, audio_track_to_play, time_to_sleep):
         """Coordinated speaking with head movement"""
         async with self._speaking_lock:  # Ensure only one speech at a time
-            # if self.events.speaking_event.is_set():
-            #     print("Already speaking, please wait...")
-            #     return
             self.events.speaking_event.set()
             self.blinker.change_blinking_time(
                 BlinkConfig.SPEAKING_FAST, BlinkConfig.SPEAKING_SLOW
             )
             try:
-                # self.events.speaking_event.set()
                 print(f"Starting to speak: {audio_track_to_play}")
-                # head_task = asyncio.create_task(Move.move_head_rl())
                 speak_task = asyncio.create_task(
                     self.speak(audio_track_to_play, time_to_sleep)
                 )
@@ -177,8 +166,7 @@ class Speak:
                     else:
                         print("! /dev/snd/ not available — no audio devices detected.")
 
-                    # Give it a moment to recover
-                    sleep(1)
+                    sleep(1)  # Give some time for the system to reset
 
                     # Retry playback once
                     try:
@@ -191,7 +179,7 @@ class Speak:
                         ) as stream:
                             stream.write(data)
                     except Exception as retry_err:
-                        print(f"❌ Retry failed: {retry_err}")
+                        print(f"Retry failed: {retry_err}")
 
             # Play audio in background thread (non-blocking)
             threading.Thread(target=_play_audio, daemon=True).start()
@@ -200,7 +188,6 @@ class Speak:
 
             # Calculate time per frame
             sound_duration = len(data) / samplerate
-            # frame_duration = max(sound_duration / num_frames_in_track, 0.033)
             frame_duration = sound_duration / num_frames_in_track
             print(f"frame_duration: {frame_duration}")
             cluster_to_animate = random.randint(
