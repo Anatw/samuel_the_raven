@@ -18,3 +18,4 @@ scipy==1.15.2
 sounddevice==0.5.1
 soundfile==0.13.1
 vosk==0.3.45
+pyaudio==0.2.13

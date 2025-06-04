@@ -1,6 +1,4 @@
 import asyncio
-import heapq
-from random import choices, uniform
 import signal
 import maestro
 import multiprocessing
@@ -12,10 +10,8 @@ from os import environ
 from samuel_async import Samuel
 from Servo import Movement
 from animatron_move import Move
-from camera_face_tracking import FaceDetecion
+from camera_face_tracking import FaceDetection, face_event_listener
 from touch_sensor import MPR121TouchSensor
-from animatron_speak import Speak
-from config import BlinkConfig
 
 # from speech_recognition import SpeechRecognition
 from timer_window_for_programmer import show_timer_window
@@ -70,52 +66,6 @@ def terminate_all():
     print("All threads, processes, and resources have been cleaned up.")
 
 
-def face_event_listener(face_queue, audio_queue, samuel):
-    """
-    Pull names from face_queue, pick repeats, and enqueue filenames
-    into audio_queue for playback.
-    """
-
-    def _flush_below(priority_queue: queue.PriorityQueue, min_priority: int) -> None:
-        """
-        Remove any queued items whose priority >= min_priority
-        and rebuild the heap in-place.
-        """
-        with priority_queue.mutex:
-            priority_queue.queue[:] = [
-                item for item in priority_queue.queue if item[0] < min_priority
-            ]
-            heapq.heapify(priority_queue.queue)  # restore heap property
-
-    while not samuel.events.shutdown_event.is_set():
-        try:
-            name = face_queue.get(timeout=0.2)  # blocks
-        except (EOFError, OSError):  # main has closed the queue—time to exit
-            break
-        except queue.Empty:  # timeout: loop back and check shutdown_event
-            continue
-
-        print(f"I see you, {name}!")
-        samuel.events.face_detected_event.set()
-
-        number_of_repeats = [1, 2, 3]
-        weights_for_repeats = [0.55, 0.30, 0.15]
-        reps = choices(number_of_repeats, weights=weights_for_repeats, k=1)[0]
-        print(f"Repeating name {reps} time(s)")
-
-        # blink faster while speaking
-        samuel.blinker.change_blinking_time(
-            BlinkConfig.ATTENTION_FAST, BlinkConfig.ATTENTION_SLOW
-        )
-
-        track = Speak.choose_random_sound_from_category(category=name)
-        _flush_below(audio_queue, 1)
-        for _ in range(reps):
-            audio_queue.put_nowait((0, track, uniform(0.3, 2.2)))
-
-        samuel.blinker.restore_blinking_time()
-
-
 def main():
     global threads, samuel, audio_queue, maestro_controller, face_queue
 
@@ -153,7 +103,7 @@ def main():
     maestro_controller.setAccel(chan=Movement.head_rl.pin_number, accel=8)
     # speech_instance = SpeechRecognition(sample_rate=48000)
     face_queue = multiprocessing.Queue()
-    face_detection_instance = FaceDetecion(samuel=samuel, face_queue=face_queue)
+    face_detection_instance = FaceDetection(samuel=samuel, face_queue=face_queue)
     try:
         threads = []
         run_timer_window_on_pi(threads)
