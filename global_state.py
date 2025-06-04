@@ -11,7 +11,7 @@ class Events:
             cls._instance.head_pat_event = Event()
             cls._instance.speaking_event = Event()
             cls._instance.face_detected_event = Event()
-            cls._instance.resume_face_tracking_event = Event()
+            cls._instance.face_tracking_activate_event = Event()
             cls._instance.blink_event = Event()
             cls._instance.shutdown_event = Event()
         return cls._instance
@@ -21,6 +21,6 @@ class Events:
     head_pat_event: Event
     speaking_event: Event
     face_detected_event: Event
-    resume_face_tracking_event: Event
+    face_tracking_activate_event: Event
     blink_event: Event
     shutdown_event: Event
