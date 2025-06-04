@@ -4,9 +4,8 @@ import asyncio
 import threading
 
 from Servo import Movement
+from constants import FACE_TRACKING_TIMEOUT
 from utils import get_random_weighted_sleep_time
-
-TIME_TO_TRACK_FACE = 23
 
 
 class Move:
@@ -90,7 +89,9 @@ class Move:
                 time.sleep(0.05)
 
         # 1) Schedule clearing the face flag after the TRACK window
-        t = threading.Timer(TIME_TO_TRACK_FACE, self.events.face_detected_event.clear)
+        t = threading.Timer(
+            FACE_TRACKING_TIMEOUT, self.events.face_detected_event.clear
+        )
         t.daemon = True
         t.start()
 
@@ -114,13 +115,13 @@ class Move:
     #         )
 
     def resume_tracking_faces(self):
-        self.events.resume_face_tracking_event.set()
+        self.events.face_tracking_activate_event.set()
         self.events.head_pat_event.clear()
         self.events.look_at_me_event.clear()
 
     def move(self):
         # This process allow Samuel to move while doing other routines such as speaking. The movement is always available in the background.
-        self.events.resume_face_tracking_event.set()
+        self.events.face_tracking_activate_event.set()
         should_start_movement_cycle = True
         idle_resume_timer = None
         self.body_flap_thread = None
@@ -151,7 +152,6 @@ class Move:
                     target=self.move_body_flap_wings_face_detection, daemon=True
                 )
                 self.body_flap_thread.start()
-                print("boooooooooo")
 
             if (
                 not self.events.head_pat_event.is_set()
@@ -168,11 +168,12 @@ class Move:
                     idle_resume_timer.cancel()
 
                 # Immediately re-allow face detection (unblock camera guard)
-                self.events.resume_face_tracking_event.set()
+                self.events.face_tracking_activate_event.set()
 
-                # Then *schedule* a pause on *re*-detecting for TIME_TO_TRACK_FACE
+                # Then *schedule* a pause on *re*-detecting for FACE_TRACKING_TIMEOUT
                 idle_resume_timer = threading.Timer(
-                    TIME_TO_TRACK_FACE, self.events.resume_face_tracking_event.clear
+                    FACE_TRACKING_TIMEOUT,
+                    self.events.face_tracking_activate_event.clear,
                 )
                 idle_resume_timer.daemon = True
                 idle_resume_timer.start()
