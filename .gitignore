@@ -8,3 +8,7 @@ Face Recognition/
 maestro.py
 __pycache__/
 speech_recognition/
+sound_recordings/
+models/
+test_new_samuel_audio_speech_mp3/
+speech_variants.json
