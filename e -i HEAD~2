@@ -1,0 +1,325 @@
+[33mcommit 95ef7711a22c76aae006e179bbfc4ad47db97d1c[m[33m ([m[1;36mHEAD -> [m[1;32mrefactor_speech_mechanism_audio_playback[m[33m)[m
+Author: ‪Anat Wax <anatwax@gmail.com>
+Date:   Mon Apr 7 21:42:53 2025 +0300
+
+    Include changes in animatron_speak.py, requirements.txt, and samuel_main.py
+
+animatron_speak.py
+requirements.txt
+samuel_main.py
+
+[33mcommit 77de1b9a09be4b3d386ef6f8c6642f72405286ff[m[33m ([m[1;32mbackup-main[m[33m)[m
+Author: ‪Anat Wax <anatwax@gmail.com>
+Date:   Mon Apr 7 21:30:57 2025 +0300
+
+    Refactor speaking mechanism to allow speech recognition
+    
+    add seech recognition capbilities and replace pygame usage to play
+    audio to souddevice library.
+    
+    Signed-off-by: ‪Anat Wax <anatwax@gmail.com>
+
+speech_recognition.py
+
+[33mcommit 4b4464c84759d2e34aa0aff170dbfd6ef2a8fa13[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m, [m[1;32madd_speech_recognition_capabilities[m[33m)[m
+Merge: 788d5a5 bc2ec31
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sat Mar 29 00:58:36 2025 +0300
+
+    Merge pull request #10 from Anatw/small_fixes_to_face_refognition_mechanism
+    
+    Some minor fixes to the face recognition mechanism that were
+
+[33mcommit bc2ec31530d86011387114dcccaa39898716af88[m[33m ([m[1;31morigin/small_fixes_to_face_refognition_mechanism[m[33m, [m[1;32msmall_fixes_to_face_refognition_mechanism[m[33m)[m
+Author: ‪Anat Wax <anatwax@gmail.com>
+Date:   Tue Mar 25 00:47:38 2025 +0200
+
+    Some minor fixes to the face recognition mechanism that were
+    
+    excidently dropped from the previous PR.
+    
+    Signed-off-by: ‪Anat Wax <anatwax@gmail.com>
+
+.gitignore
+animatron_speak.py
+tox.ini
+
+[33mcommit 788d5a5568c465f74742eee2bd4f10305bbdb47a[m
+Merge: 1c7e397 68d9bc5
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sun Jan 12 23:39:12 2025 +0200
+
+    Merge pull request #9 from Anatw/major_changes
+    
+    Major changes
+
+[33mcommit 1c7e39722785535c3a47aac6b2c060cac12804f8[m
+Merge: 6120b7a 59ee4d8
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sun Jan 12 23:38:59 2025 +0200
+
+    Merge pull request #8 from Anatw/move_to_rpi5_and_add_face_recognition_and_tracking
+    
+    Move to RPI5 and add face recognition and tracking
+
+[33mcommit 68d9bc5a59fe38ef8a5bf82b9ad0fa6ac5e78a7f[m[33m ([m[1;31morigin/major_changes[m[33m, [m[1;32mmajor_changes[m[33m)[m
+Author: ‪Anat Wax <anatwax@gmail.com>
+Date:   Sun Jan 12 23:19:10 2025 +0200
+
+    Major changes
+    
+    Signed-off-by: ‪Anat Wax <anatwax@gmail.com>
+
+.gitignore
+.pre-commit-config.yaml
+Servo.py
+animatron_move.py
+animatron_speak.py
+anymatron_speak.py
+config.py
+constants.py
+global_state.py
+requirements.txt
+samuel.py
+samuel_async.py
+samuel_main.py
+timer_window_for_programmer.py
+tox.ini
+utils.py
+
+[33mcommit 59ee4d86f73cae04ce5da93aba6e0a26ebd4c03b[m[33m ([m[1;31morigin/move_to_rpi5_and_add_face_recognition_and_tracking[m[33m)[m
+Author: ‪Anat Wax <anatwax@gmail.com>
+Date:   Sun Oct 27 22:22:10 2024 +0200
+
+    Move to RPI5 and add face recognition and tracking
+    
+     - I moved the project from running on Raspberry pi3 to running on
+       Raspberry pi 5.
+     - I added face detection abilities and face tracking abbilities
+       that influences the raven's behaviour. This is the beginning,
+       there are additional behaviours I want to add with this new
+       ability.
+    
+    Signed-off-by: ‪Anat Wax <anatwax@gmail.com>
+
+anymatron_move.py
+global_state.py
+samuel_async.py
+
+[33mcommit 6120b7a88c3294203105c338b47b18818ccb9d40[m
+Merge: 0098d9b b75afb3
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sun Oct 6 02:39:54 2024 +0300
+
+    Merge pull request #7 from Anatw/multiprocessing_and_module_splitting
+    
+    Multiprocessing and module splitting
+
+[33mcommit b75afb3769804dbc1db4fde3a010cfb8833f00e8[m[33m ([m[1;31morigin/multiprocessing_and_module_splitting[m[33m)[m
+Merge: 36ec8c0 0098d9b
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sun Oct 6 02:38:26 2024 +0300
+
+    Merge branch 'main' into multiprocessing_and_module_splitting
+
+[33mcommit 36ec8c0433fc5c083ab8bc14e3ae50048cff8fc9[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sun Oct 6 02:35:13 2024 +0300
+
+    final commit from the RPI3
+
+samuel_async.py
+
+[33mcommit 39ea9ff1c0950e60195337857d62d8091460ed09[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Tue Sep 3 02:10:22 2024 +0300
+
+    Remove threads and move to multiprocessing
+    
+    Move different components into their own modules (speak and move) and create a new global state module for events.
+
+anymatron_move.py
+anymatron_speak.py
+constants.py
+global_state.py
+samuel.py
+samuel_async.py
+
+[33mcommit fe1639cbd248cc5e6a480b86e81443ec956275f5[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Tue Sep 3 02:08:21 2024 +0300
+
+    Resolved merge conflicts
+
+samuel.py
+utils.py
+
+[33mcommit 0098d9b0ba1d660e8cea90e0a5446b5babc4e7dd[m
+Merge: ec9bfd8 1de0728
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Wed Jul 3 01:36:15 2024 +0300
+
+    Merge pull request #6 from Anatw/2_july_24
+    
+    Add utils.py and refactor the general natural movement mechanism
+
+[33mcommit 1de072873d8ad2930f077193ac626535ed40099a[m[33m ([m[1;31morigin/2_july_24[m[33m)[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Wed Jul 3 01:34:09 2024 +0300
+
+    Add utils.py and refactor the general natural movement mechanism
+    
+    Signed-off-by: Anat Wax <anatwax@gmail.com>
+
+samuel.py
+utils.py
+
+[33mcommit ec9bfd8cafed8b1e716532d10ebd877f8e4fd3ad[m
+Merge: 382c03e 1084f39
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Tue Jul 2 03:25:33 2024 +0300
+
+    Merge pull request #5 from Anatw/1_july_24
+    
+    Add due random movements and refactor wings direction
+
+[33mcommit 1084f39d69218fbf20b8d48a9431c0d4041e480d[m[33m ([m[1;31morigin/1_july_24[m[33m)[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Tue Jul 2 03:20:25 2024 +0300
+
+    Add due random movements and refactor wings direction
+    
+    Random movements shuold happen constantly when no specialized
+    automation is happening. This allows more realistic movements
+    and behaviour than the previously single random movement.
+    
+    Signed-off-by: Anat Wax <anatwax@gmail.com>
+
+Servo.py
+samuel.py
+
+[33mcommit 382c03e56900c70847691f5c269557bc44842a58[m
+Merge: ce369e9 703d102
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sat Jun 29 05:05:06 2024 +0300
+
+    Merge pull request #4 from Anatw/28_june_24
+    
+    Refactor change blinking rate and adding random movement
+
+[33mcommit 703d102d16c230844bbbd399f26533467ee36912[m[33m ([m[1;31morigin/28_june_24[m[33m)[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sat Jun 29 05:00:29 2024 +0300
+
+    Refactor change blinking rate and adding random movement
+    
+     - Added a threading event for the scenario of changing (and
+    restoring) the blinking rate to prevent race condition.
+     - Add random movements when nothing else is happening.
+    
+    Signed-off-by: Anat Wax <anatwax@gmail.com>
+
+samuel.py
+
+[33mcommit ce369e9adbc171818df0a66ba80fe7eb5f78b57f[m
+Merge: 07bb782 87b3342
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Tue Jun 18 00:45:38 2024 +0300
+
+    Merge pull request #3 from Anatw/061724
+    
+    Create movement asynchronously and concurrently in look_at_me
+
+[33mcommit 87b3342a84ccd1101ae25622cef0da16bcc85c04[m[33m ([m[1;31morigin/061724[m[33m)[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Tue Jun 18 00:43:44 2024 +0300
+
+    Create movement asyncroniously and concurrently in look_at_me
+    
+    Signed-off-by: Anat Wax <anatwax@gmail.com>
+
+Servo.py
+samuel.py
+
+[33mcommit 07bb782e3a08cd52c4fea4a2478d91c31bfc6029[m
+Merge: d6dcf8e c3279f5
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Mon Jun 17 00:32:19 2024 +0300
+
+    Merge pull request #2 from Anatw/adding_gesticulation_and_working_on_look_at_me
+    
+    Add gesticulations and work on look_at_me movement functionality
+
+[33mcommit c3279f5b500036d830cc63b4a3229291681f1525[m[33m ([m[1;31morigin/adding_gesticulation_and_working_on_look_at_me[m[33m)[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Mon Jun 17 00:29:16 2024 +0300
+
+    Add gesticulations and work on look_at_me movement functionality
+    
+    Signed-off-by: Anat Wax <anatwax@gmail.com>
+
+Servo.py
+samuel.py
+
+[33mcommit d6dcf8e8fb90d9a3e66018fbc0d3d772c483c35f[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sat Apr 20 16:16:53 2024 +0300
+
+    x
+
+samuel.py
+
+[33mcommit 15715481a0931faaaa814ce974f6c33ca35ce9c6[m
+Merge: c60f060 a2b3328
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sat Apr 20 16:13:51 2024 +0300
+
+    General upgrades 20.4.24
+    Merge branch 'main' of https://github.com/Anatw/raven_automaton
+
+[33mcommit c60f0602030a13227dbcd0932dea45f5aef256ad[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sat Apr 20 15:32:03 2024 +0300
+
+    git commit 20.4.24
+
+Servo.py
+samuel.py
+
+[33mcommit a2b33287222d40463b5f8b8b94ef9b0f13d39da7[m
+Merge: 7131bdb 8fbaee2
+Author: ‪Anat Wax <46938838+Anatw@users.noreply.github.com>
+Date:   Sun Mar 31 03:00:58 2024 +0300
+
+    Merge pull request #1 from Anatw/add_look_at_me_functionality
+    
+    Add look at me functionality
+
+[33mcommit 8fbaee233424ca608318ca565ec6cd68893941a6[m[33m ([m[1;31morigin/add_look_at_me_functionality[m[33m)[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sun Mar 31 02:37:25 2024 +0300
+
+    Add look at me functionality
+    
+    If head is not patted for X amount of time - play a "look_at_me"
+    sound to get attention.
+
+Servo.py
+samuel.py
+
+[33mcommit 7131bdbef75b9e5e51169366dc900d477f477c2c[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Tue Mar 12 21:51:05 2024 +0200
+
+    Adding Servo class and servo sub classes to control the animatron movements
+
+Servo.py
+samuel.py
+
+[33mcommit c1d571bca9d5bdd1c558dca1f8243e04a65b3082[m
+Author: Anat Wax <anatwax@gmail.com>
+Date:   Sun Feb 11 03:17:25 2024 +0200
+
+    initial commit
+
+samuel.py

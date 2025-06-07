@@ -1,0 +1,100 @@
+/home/anatw/samuel_the_raven/test_speech_recognition.py:197: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+/home/anatw/samuel_the_raven/test_speech_recognition.py:223: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech():
+/home/anatw/samuel_the_raven/test_speech_recognition.py:226: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech() != in_speech_bf:
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 212, in <module>
+    buf = stream.read(1024)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/anatw/.virtualenvs/samuel-env/lib/python3.11/site-packages/pyaudio/__init__.py", line 570, in read
+    return pa.read_stream(self._stream, num_frames,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 204, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 204, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 204, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 204, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 204, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+/home/anatw/samuel_the_raven/test_speech_recognition.py:225: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech():
+/home/anatw/samuel_the_raven/test_speech_recognition.py:228: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech() != in_speech_bf:
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 217, in <module>
+    decoder.process_raw(buf, False, False)
+KeyboardInterrupt
+/home/anatw/samuel_the_raven/test_speech_recognition.py:194: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 201, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:194: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 201, in <module>
+    decoder = Decoder(config)
+              ^^^^^^^^^^^^^^^
+  File "_pocketsphinx.pyx", line 852, in _pocketsphinx.Decoder.__init__
+RuntimeError: Failed to initialize PocketSphinx
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+/home/anatw/samuel_the_raven/test_speech_recognition.py:225: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech():
+/home/anatw/samuel_the_raven/test_speech_recognition.py:228: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech() != in_speech_bf:
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 217, in <module>
+    decoder.process_raw(buf, False, False)
+KeyboardInterrupt
+/home/anatw/samuel_the_raven/test_speech_recognition.py:198: DeprecationWarning: default_config() is deprecated, just call Config() constructor
+  config = Decoder.default_config()
+/home/anatw/samuel_the_raven/test_speech_recognition.py:225: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech():
+/home/anatw/samuel_the_raven/test_speech_recognition.py:228: DeprecationWarning: get_in_speech() is deprecated and does nothing useful
+  if decoder.get_in_speech() != in_speech_bf:
+Traceback (most recent call last):
+  File "/home/anatw/samuel_the_raven/test_speech_recognition.py", line 217, in <module>
+    decoder.process_raw(buf, False, False)
+KeyboardInterrupt

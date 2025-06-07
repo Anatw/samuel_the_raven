@@ -1,0 +1,58 @@
+diff --git a/animatron_move.py b/animatron_move.py
+index 3501cbf..5c18e9c 100644
+--- a/animatron_move.py
++++ b/animatron_move.py
+@@ -151,7 +151,6 @@ class Move:
+                     target=self.move_body_flap_wings_face_detection, daemon=True
+                 )
+                 self.body_flap_thread.start()
+-                print("boooooooooo")
+ 
+             if (
+                 not self.events.head_pat_event.is_set()
+diff --git a/camera_face_tracking.py b/camera_face_tracking.py
+index 732a6ab..c9a2655 100644
+--- a/camera_face_tracking.py
++++ b/camera_face_tracking.py
+@@ -121,24 +121,25 @@ class FaceDetecion:
+             self.face_locations = self.prev_face_locations.copy()
+         elif self.face_locations:
+             self.prev_face_locations = self.face_locations.copy()
+-        self.face_encodings = face_recognition.face_encodings(
+-            frame, self.face_locations, model="cnn"
+-        )
++            self.face_encodings = face_recognition.face_encodings(
++                frame, self.face_locations, model="cnn"
++            )
+ 
+         self.face_names = []
+-        for face_encoding in self.face_encodings:
+-            name = UNRECOGNIZED_FACE
+-            matches = face_recognition.compare_faces(
+-                self.known_face_encodings, face_encoding, tolerance=FACE_METCH_TOLERANCE
+-            )
+-            # Use the known face with the smallest distance to the new face
+-            face_distances = face_recognition.face_distance(
+-                self.known_face_encodings, face_encoding
+-            )
+-            best_match_index = np.argmin(face_distances)
+-            if matches[best_match_index]:
+-                name = self.known_face_names[best_match_index]
+-            self.face_names.append(name)
++        if self.face_encodings:
++            for face_encoding in self.face_encodings:
++                name = UNRECOGNIZED_FACE
++                matches = face_recognition.compare_faces(
++                    self.known_face_encodings, face_encoding, tolerance=FACE_METCH_TOLERANCE
++                )
++                # Use the known face with the smallest distance to the new face
++                face_distances = face_recognition.face_distance(
++                    self.known_face_encodings, face_encoding
++                )
++                best_match_index = np.argmin(face_distances)
++                if matches[best_match_index]:
++                    name = self.known_face_names[best_match_index]
++                self.face_names.append(name)
+ 
+         recognised = [n for n in self.face_names if n in Names.names]
+         if not recognised:

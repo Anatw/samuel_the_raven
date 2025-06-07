@@ -228,8 +228,6 @@ class FaceDetection:
         """
         Find all the faces and face encodings in the current frame of video.
         """
-        # Using model="hog" here because it’s faster on a Pi,
-        # but the trade‐off is slightly lower accuracy than CNN.
         self.face_locations = face_recognition.face_locations(
             frame, number_of_times_to_upsample=0, model="hog"
         )
@@ -238,26 +236,29 @@ class FaceDetection:
             self.face_locations = self.prev_face_locations.copy()
         elif self.face_locations:
             self.prev_face_locations = self.face_locations.copy()
-        # Using model="cnn" for higher‐quality 128-dim embeddings.
-        # This is CPU‐heavy—on a Pi. Change to "hog" to go easier on the CPU.
-        self.face_encodings = face_recognition.face_encodings(
-            frame, self.face_locations, model="cnn"
-        )
+            # Using model "cnn" for higher‐quality 128-dim embeddings. This is CPU‐heavy—on
+            # the Pi.
+            self.face_encodings = face_recognition.face_encodings(
+                frame, self.face_locations, model="cnn"
+            )
 
         self.face_names = []
-        for face_encoding in self.face_encodings:
-            name = UNRECOGNIZED_FACE
-            matches = face_recognition.compare_faces(
-                self.known_face_encodings, face_encoding, tolerance=FACE_MATCH_TOLERANCE
-            )
-            # Use the known face with the smallest distance to the new face
-            face_distances = face_recognition.face_distance(
-                self.known_face_encodings, face_encoding
-            )
-            best_match_index = np.argmin(face_distances)
-            if matches[best_match_index]:
-                name = self.known_face_names[best_match_index]
-            self.face_names.append(name)
+        if self.face_encodings:
+            for face_encoding in self.face_encodings:
+                name = UNRECOGNIZED_FACE
+                matches = face_recognition.compare_faces(
+                    self.known_face_encodings,
+                    face_encoding,
+                    tolerance=FACE_MATCH_TOLERANCE,
+                )
+                # Use the known face with the smallest distance to the new face
+                face_distances = face_recognition.face_distance(
+                    self.known_face_encodings, face_encoding
+                )
+                best_match_index = np.argmin(face_distances)
+                if matches[best_match_index]:
+                    name = self.known_face_names[best_match_index]
+                self.face_names.append(name)
 
         recognised = [n for n in self.face_names if n in Names.names]
         if not recognised:
