@@ -19,17 +19,21 @@ A Python-based animatronic raven integrating speech recognition, face detection 
 
 ```text
 .
+├── .gitignore                        # Git ignore rules
+├── .pre-commit-config.yaml           # Pre-commit hooks configuration
 ├── Servo.py                          # Maestro servo control interface
 ├── animatron_move.py                 # Background movement routines
 ├── animatron_speak.py                # Speech playback and event handling
 ├── samuel_main.py                    # Entry point for standard operation
 ├── samuel_async.py                   # Async-driven operation example
 ├── config.py                         # Behavior and threshold configurations
+├── camera_face_tracking.py           # Face detection and tracking routines
 ├── global_state.py                   # Shared events and state definitions
 ├── timer_window_for_programmer.py    # Developer timing visualization tool
 ├── touch_sensor.py                   # MPR121 capacitive-touch sensor driver
 ├── requirements.txt                  # Python dependency list
 ├── tox.ini                           # Testing & linting configuration
+├── utils.py                          # Utility helper functions
 └── README.md                         # Project documentation
 ```
 
