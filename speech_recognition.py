@@ -1,4 +1,5 @@
 import queue
+import time
 from animatron_audio_devices import get_audio_device_indices
 from animatron_speak import Speak
 import sounddevice as sd  # capture live audio from the microphone
@@ -116,6 +117,8 @@ class SpeechRecognition:
                                 f"   • Fuzzy: '{details['match']}' ≈ '{details['variant']}' → '{word}' (score: {details['score']})"
                             )
                     if "Samuel" in matched_words:
+                        # When recognized a word - recognized the someone talked to him
+                        self.events.last_interaction_time = time.time()
                         print("You called my name!!")
                         audio_track_to_play = Speak.choose_random_sound_from_category(
                             category=Speak.SoundCategories.CallFaceBackKraa.name

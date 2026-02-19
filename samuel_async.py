@@ -18,7 +18,7 @@ class Samuel:
         self.blinker = self.Blink(led=self.led)
         self.speaker = Speak(blinker=self.blinker)
         self.events = Events()
-        self.head_patted_time = time.time()
+        self.events.last_interaction_time = time.time()
         self.time_to_look_at_me = 180
         self.audio_lock = threading.Lock()  # lock for audio playback
         self.touch_sensor = touch_sensor
@@ -121,13 +121,13 @@ class Samuel:
                 # self.async_speak(audio_track_to_play, time_to_sleep=1040)
                 self.events.head_pat_event.clear()
                 self.blinker.restore_blinking_time()
-                self.head_patted_time = time.time()
+                self.events.last_interaction_time = time.time()
             time.sleep(self.touch_sensor.poll_int)
 
     def look_at_me(self):
         while not self.events.shutdown_event.is_set():
             if (
-                time.time() - self.head_patted_time
+                time.time() - self.events.last_interaction_time
             ) > self.time_to_look_at_me and not self.events.speaking_event.is_set():
                 self.events.look_at_me_event.set()
                 self.blinker.change_blinking_time(
@@ -145,7 +145,7 @@ class Samuel:
                         Speak.DEFAULT_GAP,
                     )
                 )
-                self.head_patted_time = time.time()
+                self.events.last_interaction_time = time.time()
                 self.blinker.restore_blinking_time()
                 self.events.look_at_me_event.clear()
             time.sleep(0.1)
