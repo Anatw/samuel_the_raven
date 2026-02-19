@@ -16,10 +16,10 @@ def find_device_by_name(name_part, is_input=True):
 def get_audio_device_indices():
     mic_name = "UM02: USB Audio"
     speaker_name = "USB PnP Audio Device"
-    print(f"Printing audio devices on PI: {sd.query_devices()}")
 
-    mic_index = find_device_by_name(name_part=mic_name, is_input=True)
-    speaker_index = find_device_by_name(name_part=speaker_name, is_input=False)
+    mic_index = find_device_by_name(mic_name, is_input=True)
+    speaker_index = find_device_by_name(speaker_name, is_input=False)
 
-    print(f"Mic index: {mic_index}, Speaker index: {speaker_index}")
+    print(f"Mic index: {mic_index} ({sd.query_devices(mic_index)['name']})")
+    print(f"Speaker index: {speaker_index} ({sd.query_devices(speaker_index)['name']})")
     return {"mic_index": mic_index, "speaker_index": speaker_index}

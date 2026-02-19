@@ -13,7 +13,7 @@ from animatron_move import Move
 from camera_face_tracking import FaceDetection, face_event_listener
 from touch_sensor import MPR121TouchSensor
 
-# from speech_recognition import SpeechRecognition
+from speech_recognition import SpeechRecognition
 from timer_window_for_programmer import show_timer_window
 
 samuel = None
@@ -21,6 +21,7 @@ maestro_controller = None
 audio_queue = None
 face_queue = None
 shutdown_in_progress = False
+threads = []
 
 
 def run_timer_window_on_pi(threads):
@@ -101,11 +102,10 @@ def main():
     maestro_controller.setAccel(chan=Movement.head_ud.pin_number, accel=8)
     maestro_controller.setSpeed(chan=Movement.head_rl.pin_number, speed=120)
     maestro_controller.setAccel(chan=Movement.head_rl.pin_number, accel=8)
-    # speech_instance = SpeechRecognition(sample_rate=48000)
+    speech_instance = SpeechRecognition(events=samuel.events, audio_queue=audio_queue)
     face_queue = multiprocessing.Queue()
     face_detection_instance = FaceDetection(samuel=samuel, face_queue=face_queue)
     try:
-        threads = []
         run_timer_window_on_pi(threads)
 
         # Use threads for I/O-bound tasks
@@ -135,6 +135,9 @@ def main():
                 target=face_detection_instance.face_detection_and_tracking, daemon=True
             ),
             threading.Thread(target=Move(samuel.events).move, daemon=True),
+            threading.Thread(
+                target=speech_instance.recognize_words_from_microphone, daemon=True
+            ),
         ]
 
         for thread in threads:
