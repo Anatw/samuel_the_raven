@@ -1,4 +1,6 @@
 import queue
+from animatron_audio_devices import get_audio_device_indices
+from animatron_speak import Speak
 import sounddevice as sd  # capture live audio from the microphone
 import vosk
 import sys
@@ -8,12 +10,21 @@ import os
 from rapidfuzz import fuzz
 from private_words_behavior import NAME_CORRECTIONS_REGEX
 
-MODEL_PATH = "models/vosk-model-small-en-us-0.15"
+MODEL_PATH = "speech_recognition/models/vosk-model-small-en-us-0.15"
 FUZZY_MATCHES = "speech_variants.json"
 
 
 class SpeechRecognition:
-    def __init__(self, model_path=MODEL_PATH, sample_rate=16000, threshold=85):
+    def __init__(
+        self,
+        events,
+        audio_queue,
+        model_path=MODEL_PATH,
+        sample_rate=48000,
+        threshold=85,
+    ):
+        self.events = events
+        self.audio_queue = audio_queue
         self.model_path = model_path
         self.sample_rate = sample_rate
         self.threshold = threshold
@@ -61,19 +72,27 @@ class SpeechRecognition:
         return found
 
     def recognize_words_from_microphone(self):
+        audio_device = get_audio_device_indices()
+        mic_index = audio_device["mic_index"]
+        mic_info = sd.query_devices(mic_index)
+
         with sd.RawInputStream(
             samplerate=self.sample_rate,
-            # blocksize=8000,
+            blocksize=32768,
             dtype="int16",
-            # channels=1,
-            device=3,
+            channels=mic_info["max_input_channels"],
+            device=mic_index,
             callback=self.audio_callback,
+            latency="low",
         ):
             recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
             print("Hello! I'm listening")
 
             while not self.events.shutdown_event.is_set():
-                data = self.q.get()
+                try:
+                    data = self.q.get(timeout=0.5)
+                except queue.Empty:
+                    continue
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
                     raw_text = result.get("text", "").strip()
@@ -96,3 +115,15 @@ class SpeechRecognition:
                             print(
                                 f"   • Fuzzy: '{details['match']}' ≈ '{details['variant']}' → '{word}' (score: {details['score']})"
                             )
+                    if "Samuel" in matched_words:
+                        print("You called my name!!")
+                        audio_track_to_play = Speak.choose_random_sound_from_category(
+                            category=Speak.SoundCategories.CallFaceBackKraa.name
+                        )
+                        self.audio_queue.put_nowait(
+                            (
+                                Speak.SoundCategories.CallFaceBackKraa.queue_priority,
+                                audio_track_to_play,
+                                Speak.DEFAULT_GAP,
+                            )
+                        )
