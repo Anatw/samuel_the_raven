@@ -1,4 +1,5 @@
 from threading import Event
+import time
 
 
 class Events:
@@ -14,6 +15,9 @@ class Events:
             cls._instance.face_tracking_activate_event = Event()
             cls._instance.blink_event = Event()
             cls._instance.shutdown_event = Event()
+
+            cls._instance.last_interaction_time = time.time()
+
         return cls._instance
 
     # Type hints for IDE support
@@ -24,3 +28,5 @@ class Events:
     face_tracking_activate_event: Event
     blink_event: Event
     shutdown_event: Event
+
+    last_interaction_time: float

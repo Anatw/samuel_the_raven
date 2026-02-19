@@ -28,7 +28,7 @@ CV_SCALER = 4
 # Face recognition settings:
 # BOREDOM_TIME: The time in seconds to stay in idle movement mode even when a face is detected.
 # FACE_MATCH_TOLERANCE: The tolerance for the face recognition. Lower value = stricter.
-BOREDOM_TIME = 60
+BOREDOM_TIME = 240
 IMAGE_THIRD = FRAME_HEIGHT / 3
 UNRECOGNIZED_FACE = "unknown"
 FACE_MATCH_TOLERANCE = 0.38
