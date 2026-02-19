@@ -82,7 +82,7 @@ def face_event_listener(face_queue, audio_queue, samuel):
         track = Speak.choose_random_sound_from_category(category=name)
         _flush_below(audio_queue, 1)
         for _ in range(reps):
-            audio_queue.put_nowait((0, track, uniform(0.3, 2.2)))
+            audio_queue.put_nowait((0, track, uniform(0.3, 3.8)))
 
         samuel.blinker.restore_blinking_time()
 
